@@ -6,11 +6,11 @@ DATASET_PATH = os.path.join("dataset", "train")
 IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "images")
 MASK_DATASET_PATH = os.path.join(DATASET_PATH, "masks")
 
-EPOCHS = 250
-INIT_LR = 0.001
+EPOCHS = 50
+Learning_rate = 0.0001
 
-TRAIN_BATCH_SIZE = 16
-TEST_BATCH_SIZE = 8
+TRAIN_BATCH_SIZE = 4
+TEST_BATCH_SIZE = 4
 
 BASE_OUTPUT = "output"
 ACCURACY_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "acc_plot.png"])
@@ -18,4 +18,5 @@ LOSSES_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "losses_plot.png"])
 IOU_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "iou_plot.png"])
 DICE_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "dice_plot.png"])
 PIXEL_ACCURACY_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "pixel_accuracyplot.png"])
-Recall_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "recall_plot.png"])
+RECALL_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "recall_plot.png"])
+SPECIFICTY_PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "specificty.png"])

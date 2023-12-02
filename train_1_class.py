@@ -11,7 +11,8 @@ from sklearn.model_selection import train_test_split
 import tqdm
 
 from dataset import SegmentationDataset
-from unet import UNet
+# from unet import UNet
+from UNet_P import UNet
 from evaluation_metrices import Evaluation_metrices
 from AUNet_1 import AUNet_R16
 from unet_1 import build_unet
@@ -26,13 +27,39 @@ all_image_npy_paths = sorted(Path(config.IMAGE_DATASET_PATH).glob("*.npy"))
 all_mask_npy_paths = sorted(Path(config.MASK_DATASET_PATH).glob("*.npy"))
 
 
+#
+# # Load and display the first five images and their masks
+# num_images_to_display = 5
+#
+# for i in range(num_images_to_display):
+#     image_path = all_image_npy_paths[i]
+#     mask_path = all_mask_npy_paths[i]
+#
+#     # Load image and mask data
+#     image_data = np.load(image_path)
+#     print("image", image_data.shape)
+#     mask_data = np.load(mask_path)
+#     print("mask", mask_data.shape)
+#
+#     # Display the image and mask
+#     plt.figure(figsize=(8, 4))
+#
+#     plt.subplot(1, 2, 1)
+#     plt.imshow(image_data, cmap='gray')  # Assuming grayscale image
+#     plt.title(f"Image {i + 1}")
+#
+#     plt.subplot(1, 2, 2)
+#     plt.imshow(mask_data, cmap='gray')  # Assuming mask is also a grayscale image
+#     plt.title(f"Mask {i + 1}")
+#
+#     plt.tight_layout()
+#     plt.show()
+
+
 # Splitting the dataset into train and test
 train_images, val_images = train_test_split(all_image_npy_paths, test_size=0.2, random_state=42)
 train_masks, val_masks = train_test_split(all_mask_npy_paths, test_size=0.2, random_state=42)
 
-# Split the data into train and validation sets
-# train_images, val_images = images[:int(0.8 * len(images))], images[int(0.8 * len(images)):]
-# train_masks, val_masks = masks[:int(0.8 * len(masks))], masks[int(0.8 * len(masks)):]
 
 # Create the training and validation datasets
 train_dataset = SegmentationDataset(train_images, train_masks)
@@ -50,16 +77,15 @@ val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.TEST_BAT
 train_steps = len(train_dataset) // config.TRAIN_BATCH_SIZE
 val_steps = len(val_dataset) // config.TEST_BATCH_SIZE
 
-
 # Create the model
-model = AUNet_R16()
-# model = UNet()
+# model = AUNet_R16()
+model = UNet()
 # model = build_unet()
 
 # Define the loss function
-# loss_function = nn.BCELoss()
+loss_function = nn.BCELoss()
 # loss_function = nn.CrossEntropyLoss()
-loss_function = Semantic_loss_functions()
+# loss_function = Semantic_loss_functions()
 
 # Define the optimizer
 optimizer = optim.Adam(model.parameters(), lr = config.Learning_rate)
@@ -86,6 +112,8 @@ def convert_to_binary(mask):
 # initialize a dictionary to store training history
 H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [], "train_iou": [], "val_iou": [], "train_dice": [], "val_dice": [], "train_pixel_accuracy": [], "val_pixel_accuracy": [] , "train_recall": [], "val_recall": [] }
 
+min_valid_loss = np.inf
+
 # Train the model
 for epoch in range(config.EPOCHS):
     print("Epoch :", epoch+1)
@@ -99,20 +127,33 @@ for epoch in range(config.EPOCHS):
     train_dice = 0
     train_pixel_accuracy = 0
     train_recall = 0
-    train_loop = enumerate(tqdm.tqdm(train_loader, total=len(train_loader), leave=True))
-    for (i, (images, masks)) in train_loop:
+    # train_loop = enumerate(tqdm.tqdm(train_loader, total=len(train_loader), leave=True))
+    for images, masks in train_loader:
         # print("Training batch:", i)
         # print("image ", images )
-
-
-
         images = images.float()
+        # binary_image = np.expand_dims(images, axis=-1)
+        #
+        # # Stack the single-channel array to create an RGB image by replicating the channel
+        # rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
+        # images = rgb_image
+
         masks = masks.float()
+        # print("masks", masks.shape)
+
+        # # making masks 2D
+        # inverted_masks = 1 - masks # Invert the mask (binary: 0s become 1s, and vice versa)
+        # combined_masks = torch.stack([masks, inverted_masks], dim=1) # Combine the original and inverted masks
+        # masks = combined_masks
+        # # print("combined_masks", masks.shape)
+
         masks = (masks - masks.min()) / (masks.max() - masks.min())
 
-        print("images", images.size())
+        # print("images_training", images.shape)
         # Resize the target tensor to match the shape of the input tensor
-        images = images.to(torch.float).view(16, 3, 256, 256)
+        # images_tensor = torch.tensor(images, dtype=torch.float32)
+        images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
+        images = images_tensor.view(4, 3, 256, 256)
         masks = masks.unsqueeze(1)
         # masks = F.interpolate(masks, size=(512, 512), mode='bilinear')
 
@@ -125,15 +166,17 @@ for epoch in range(config.EPOCHS):
         # print("outputs",torch.min(outputs), torch.max(outputs))
         # print("masks",torch.min(masks), torch.max(masks))
         # Calculate the loss
-        # loss = loss_function(outputs, masks)
+        loss = loss_function(outputs, masks)
         # print("Mean Loss:", loss.item())
-        loss = loss_function.focal_loss(outputs, masks)
+        # loss = loss_function.focal_loss(outputs, masks)
         train_loss += loss
 
 
         # Calculate the accuracy
-        accuracy = (outputs > 0.5).float().mean()
+        accuracy_1 = (outputs > 0.5).float().mean()
         train_accuracy += accuracy
+
+        accuracy = metrics.calculate_metrics(outputs, masks)
 
         # convert the mask to binary
         binary_mask = convert_to_binary(masks)
@@ -184,17 +227,36 @@ for epoch in range(config.EPOCHS):
     val_pixel_accuracy = 0
     val_recall = 0
     with torch.no_grad():
-        val_loop = enumerate(tqdm.tqdm(val_loader, total=len(val_loader), leave=True))
-        for (i, (images, masks)) in val_loop:
+        # val_loop = enumerate(tqdm.tqdm(val_loader, total=len(val_loader), leave=True))
+        for images, masks in val_loader:
+            # print("new")
             # print("Validation batch:", i)
 
             images = images.float()
+            # binary_image = np.expand_dims(images, axis=-1)
+            #
+            # # Stack the single-channel array to create an RGB image by replicating the channel
+            # rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
+            # images = rgb_image
+
             masks = masks.float()
+
+            # # making masks 2D
+            # inverted_masks = 1 - masks  # Invert the mask (binary: 0s become 1s, and vice versa)
+            # combined_masks = torch.stack([masks, inverted_masks], dim=1)  # Combine the original and inverted masks
+            # masks = combined_masks
+
             masks = (masks - masks.min()) / (masks.max() - masks.min())
 
 
             # Resize the target tensor to match the shape of the input tensor
-            images = images.to(torch.float).view(8, 1, 256, 256)
+            # print("images_testing", images.shape)
+            # Resize the target tensor to match the shape of the input tensor
+            # images_tensor = torch.tensor(images, dtype=torch.float32)
+            images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
+            images = images_tensor.view(4, 3, 256, 256)
+
+            # print("images_testing", images.shape)
             masks = masks.unsqueeze(1)
             # masks = F.interpolate(masks, size=(512, 512), mode='bilinear')
 
@@ -219,8 +281,8 @@ for epoch in range(config.EPOCHS):
             # print("masks",result)
 
             outputs = torch.sigmoid(outputs)
-            # loss = loss_function(outputs, masks)
-            loss = loss_function.focal_loss(outputs, masks)
+            loss = loss_function(outputs, masks)
+            # loss = loss_function.focal_loss(outputs, masks)
             val_loss += loss
 
             # Calculate the accuracy
@@ -254,6 +316,8 @@ for epoch in range(config.EPOCHS):
 
 
 
+
+
         # Print the accuracy
         val_accuracy = (val_accuracy / val_steps) * 100
         val_loss = val_loss / val_steps
@@ -277,44 +341,46 @@ for epoch in range(config.EPOCHS):
         H["val_dice"].append(val_dice)
         H["train_pixel_accuracy"].append(train_pixel_accuracy)
         H["val_pixel_accuracy"].append(val_pixel_accuracy)
+        H["train_recall"].append(train_recall)
+        H["val_recall"].append(val_recall)
 
         # Save the model
         torch.save(model.state_dict(), 'model.pt')
 
 
-    # #plotting graphs
-    # # plot the training & validation accuracy
-    # plt.style.use("ggplot")
-    # plt.figure()
-    # plt.plot(H["train_accuracy"], label="train_accuracy")
-    # plt.plot(H["val_accuracy"], label="val_accuracy")
-    # plt.title("Training & Validation Accuracy on Dataset")
-    # plt.xlabel("Epoch #")
-    # plt.ylabel("Accuracy (%)")
-    # plt.legend(loc="lower left")
-    # plt.savefig(config.ACCURACY_PLOT_PATH)
-
-        # # plot the training & validation loss
-        # plt.style.use("ggplot")
-        # plt.figure()
-        # plt.plot(H["train_loss"], label="train_loss")
-        # plt.plot(H["val_loss"], label="val_loss")
-        # plt.title("Training & Validation Loss on Dataset")
-        # plt.xlabel("Epoch #")
-        # plt.ylabel("Loss")
-        # plt.legend(loc="lower left")
-        # plt.savefig(config.LOSSES_PLOT_PATH)
-        #
-        # plot the training & validation iou
+        #plotting graphs
+        # plot the training & validation accuracy
         plt.style.use("ggplot")
         plt.figure()
-        plt.plot(H["train_iou"], label="train_iou")
-        plt.plot(H["val_iou"], label="val_iou")
-        plt.title("Training & Validation IoU on Dataset")
+        plt.plot(H["train_accuracy"], label="train_accuracy")
+        plt.plot(H["val_accuracy"], label="val_accuracy")
+        plt.title("Training & Validation Accuracy on Dataset")
         plt.xlabel("Epoch #")
-        plt.ylabel("iou")
+        plt.ylabel("Accuracy (%)")
         plt.legend(loc="lower left")
-        plt.savefig(config.IOU_PLOT_PATH)
+        plt.savefig(config.ACCURACY_PLOT_PATH)
+
+        # plot the training & validation loss
+        plt.style.use("ggplot")
+        plt.figure()
+        plt.plot(H["train_loss"], label="train_loss")
+        plt.plot(H["val_loss"], label="val_loss")
+        plt.title("Training & Validation Loss on Dataset")
+        plt.xlabel("Epoch #")
+        plt.ylabel("Loss")
+        plt.legend(loc="lower left")
+        plt.savefig(config.LOSSES_PLOT_PATH)
+        #
+        # # plot the training & validation iou
+        # plt.style.use("ggplot")
+        # plt.figure()
+        # plt.plot(H["train_iou"], label="train_iou")
+        # plt.plot(H["val_iou"], label="val_iou")
+        # plt.title("Training & Validation IoU on Dataset")
+        # plt.xlabel("Epoch #")
+        # plt.ylabel("iou")
+        # plt.legend(loc="lower left")
+        # plt.savefig(config.IOU_PLOT_PATH)
 
         # plot the training & validation dice coefficient
         plt.style.use("ggplot")
@@ -326,7 +392,7 @@ for epoch in range(config.EPOCHS):
         plt.ylabel("dice coefficient")
         plt.legend(loc="lower left")
         plt.savefig(config.DICE_PLOT_PATH)
-        #
+
         # # plot the training & validation pixel accuracy
         # plt.style.use("ggplot")
         # plt.figure()
@@ -337,13 +403,13 @@ for epoch in range(config.EPOCHS):
         # plt.ylabel("pixel_accuracy")
         # plt.legend(loc="lower left")
         # plt.savefig(config.PIXEL_ACCURACY_PLOT_PATH)
-        #
 
-        # plot the training & validation dice coefficient
+
+        # plot the training & validation sensitivity
         plt.style.use("ggplot")
         plt.figure()
-        plt.plot(H["train_recall"], label="train_sen")
-        plt.plot(H["val_recall"], label="val_sen")
+        plt.plot(H["train_recall"], label="train_recall")
+        plt.plot(H["val_recall"], label="val_recall")
         plt.title("Training & Validation Sensitivity on Dataset")
         plt.xlabel("Epoch #")
         plt.ylabel("Sensitivity")

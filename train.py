@@ -34,7 +34,7 @@ model = AUNet_R16()
 
 # Loss Function and Optimizer
 criterion = nn.BCELoss()
-optimizer = optim.Adam(model.parameters(), lr=config.INIT_LR)
+optimizer = optim.Adam(model.parameters(), lr=config.Learning_rate)
 
 
 # initialize a dictionary to store training history

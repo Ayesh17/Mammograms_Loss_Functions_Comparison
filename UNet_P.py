@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class UNet(nn.Module):
-    def __init__(self, num_classes=2, input_channels=3, **kwargs):
+    def __init__(self, num_classes=1, input_channels=3, **kwargs):
         super().__init__()
 
         nb_filter = [32, 64, 128, 256, 512]
