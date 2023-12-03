@@ -38,8 +38,12 @@ class Evaluation_metrices:
         tn = torch.sum((converted_output == 0) & (converted_target == 0))
         fn = torch.sum((converted_output == 0) & (converted_target == 1))
 
+        pos = torch.sum(converted_target == 1)
+        neg = torch.sum(converted_target == 0)
+        #
+        # print(pos, neg)
         # print(tp, " ", fp, " ", tn, " ", fn )
-        # print(tp)
+
 
         return tp, tn, fp, fn
 
@@ -58,17 +62,17 @@ class Evaluation_metrices:
         dice_coefficient = (2 * tp) / ((2 * tp) + fp + fn)
         return dice_coefficient
 
-    def calculate_iou(y_true, y_pred):
-        smooth = 1.
-        y_true_f = y_true.view(-1)
-        y_pred_f = y_pred.view(-1)
-        intersection = torch.sum(y_true_f * y_pred_f)
-        score = (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
-        return score
+    # def calculate_iou(y_true, y_pred):
+    #     smooth = 1.
+    #     y_true_f = y_true.view(-1)
+    #     y_pred_f = y_pred.view(-1)
+    #     intersection = torch.sum(y_true_f * y_pred_f)
+    #     score = (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
+    #     return score
 
-    # def calculate_iou(tp, tn, fp, fn):
-    #     iou = (tp) / (tp + fp + fn)
-    #     return iou
+    def calculate_iou(tp, tn, fp, fn):
+        iou = (tp) / (tp + fp + fn)
+        return iou
 
     def calculate_specificity(tp, tn, fp, fn):
         specificity = (tn) / (tn + fp)

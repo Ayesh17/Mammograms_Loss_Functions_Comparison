@@ -22,12 +22,36 @@ import config
 
 
 
+# paths
+dataset_path = config.DATASET_PATH
+train_path = os.path.join(dataset_path, "train")
+test_path = os.path.join(dataset_path, "test")
+
+train_image_dataset_path = os.path.join(train_path, "images")
+train_mask_dataset_path = os.path.join(train_path, "masks")
+
+test_image_dataset_path = os.path.join(train_path, "images")
+test_mask_dataset_path = os.path.join(train_path, "masks")
+
 
 
 # Load the mammogram images and masks path
-all_image_npy_paths = sorted(Path(config.IMAGE_DATASET_PATH).glob("*.npy"))
-all_mask_npy_paths = sorted(Path(config.MASK_DATASET_PATH).glob("*.npy"))
+all_image_npy_paths = sorted(Path(train_image_dataset_path).glob("*.npy"))
+all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
+
+#check for existing models
+# Find existing model files in the directory
+models_dir = "models"
+# List existing models that start with 'model_' and end with '.pt'
+existing_models = [filename for filename in os.listdir(models_dir) if filename.startswith('model_') and filename.endswith('.pt')]
+
+# Determine the next available model count
+model_count = len(existing_models) + 1 if existing_models else 1
+
+# Construct the model filename based on the count
+model_filename = os.path.join(models_dir, f'model_{model_count}.pt')
+print(model_filename)
 
 # Define lists to store evaluation metrics across folds
 all_train_loss, all_val_loss = [], []
@@ -39,8 +63,7 @@ all_train_recall, all_val_recall = [], []
 
 
 # Define the number of folds
-n_splits = 5
-kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+kf = KFold(n_splits=config.FOLDS, shuffle=True, random_state=42)
 
 
 for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
@@ -57,8 +80,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     val_dataset = SegmentationDataset(val_images, val_masks)
 
     # Create the data loaders for this fold
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.TEST_BATCH_SIZE, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
 
 
     print(f"[INFO] found {len(train_dataset)} examples in the training set...")
@@ -66,8 +89,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
     # calculate steps per epoch for training and test set
-    train_steps = len(train_dataset) // config.TRAIN_BATCH_SIZE
-    val_steps = len(val_dataset) // config.TEST_BATCH_SIZE
+    train_steps = len(train_dataset) // config.BATCH_SIZE
+    val_steps = len(val_dataset) // config.BATCH_SIZE
 
     # Create the model
     # model = AUNet_R16()
@@ -170,7 +193,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
             # calculate the iou
-            iou = metrics.calculate_iou(masks, outputs)
+            iou = metrics.calculate_iou(tp, tn, fp, fn)
             train_iou += iou
             # print(f"Training IoU: {train_iou}")
 
@@ -262,7 +285,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 val_dice += dice_coefficient
 
                 # calculate the iou
-                iou = metrics.calculate_iou(masks, outputs)
+                iou = metrics.calculate_iou(tp, tn, fp, fn)
                 val_iou += iou
                 # print(f"Validation IoU: {val_iou}")
 
@@ -287,8 +310,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             # update our training history
             H["train_accuracy"].append(train_accuracy)
             H["val_accuracy"].append(val_accuracy)
-            H["train_loss"].append(train_loss)
-            H["val_loss"].append(val_loss)
+            H["train_loss"].append(train_loss.detach().numpy())
+            H["val_loss"].append(val_loss.detach().numpy())
             H["train_iou"].append(train_iou)
             H["val_iou"].append(val_iou)
             H["train_dice"].append(train_dice)
@@ -303,26 +326,27 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f}) \t Saving The Model')
                 min_valid_loss = val_loss
                 # Saving State Dict
-                torch.save(model.state_dict(), 'model.pt')
+
+                torch.save(model.state_dict(), model_filename)
 
     # Record evaluation metrics at the end of each fold
-    all_train_loss.append(H["train_loss"][-1].detach().numpy())
-    all_val_loss.append(H["val_loss"][-1].detach().numpy())
+    all_train_loss.append(H["train_loss"])
+    all_val_loss.append(H["val_loss"])
 
-    all_train_accuracy.append(H["train_accuracy"][-1].detach().numpy())
-    all_val_accuracy.append(H["val_accuracy"][-1].detach().numpy())
+    all_train_accuracy.append(H["train_accuracy"])
+    all_val_accuracy.append(H["val_accuracy"])
 
-    all_train_iou.append(H["train_iou"][-1].detach().numpy())
-    all_val_iou.append(H["val_iou"][-1].detach().numpy())
+    all_train_iou.append(H["train_iou"])
+    all_val_iou.append(H["val_iou"])
 
-    all_train_dice.append(H["train_dice"][-1].detach().numpy())
-    all_val_dice.append(H["val_dice"][-1].detach().numpy())
+    all_train_dice.append(H["train_dice"])
+    all_val_dice.append(H["val_dice"])
 
-    all_train_specificity.append(H["train_specificity"][-1].detach().numpy())
-    all_val_specificity.append(H["val_specificity"][-1].detach().numpy())
+    all_train_specificity.append(H["train_specificity"])
+    all_val_specificity.append(H["val_specificity"])
 
-    all_train_recall.append(H["train_recall"][-1].detach().numpy())
-    all_val_recall.append(H["val_recall"][-1].detach().numpy())
+    all_train_recall.append(H["train_recall"])
+    all_val_recall.append(H["val_recall"])
 
 
 
@@ -346,23 +370,41 @@ mean_train_recall = np.mean(all_train_recall)
 mean_val_recall = np.mean(all_val_recall)
 
 # Display mean evaluation metrics across all folds
-print("Mean Training Loss:", mean_train_loss)
-print("Mean Validation Loss:", mean_val_loss)
+print()
+print("Average results after 5 folds")
+print("Training accuracy: {:.2f}%, Validation accuracy: {:.2f}%, Traning Loss: {:.4f}, Validation Loss: {:.4f}, Traning Sensitivity: {:.4f}, Validation Sensitivity: {:.4f}, ".format(mean_train_accuracy, mean_val_accuracy, mean_train_loss, mean_val_loss, mean_train_recall, mean_val_recall))
+print("Training iou: {:.4f}, Validation iou: {:.4f}, Traning dice: {:.4f}, Validation dice: {:.4f}, Traning specificity: {:.4f}, Validation specificity: {:.4f}".format(mean_train_iou, mean_val_iou, mean_train_dice, mean_val_dice, mean_train_specificity, mean_val_specificity))
 
-print("Mean Training Accuracy:", mean_train_accuracy)
-print("Mean Validation Accuracy:", mean_val_accuracy)
 
-print("Mean Training IoU:", mean_train_iou)
-print("Mean Validation IoU:", mean_val_iou)
 
-print("Mean Training Dice Coefficient:", mean_train_dice)
-print("Mean Validation Dice Coefficient:", mean_val_dice)
+# Output paths
+# Define the base path
+BASE_PATH = "output"
 
-print("Mean Training Specificity:", mean_train_specificity)
-print("Mean Validation Specificity:", mean_val_specificity)
+# Create the output directory if it doesn't exist
+if not os.path.exists(BASE_PATH):
+    os.makedirs(BASE_PATH)
 
-print("Mean Training Recall:", mean_train_recall)
-print("Mean Validation Recall:", mean_val_recall)
+# Find existing output_digit directories and get the next available digit
+existing_output_dirs = [name for name in os.listdir(BASE_PATH) if name.startswith("output_")]
+if existing_output_dirs:
+    existing_digits = [int(name.split("_")[1]) for name in existing_output_dirs]
+    next_digit = max(existing_digits) + 1
+else:
+    next_digit = 1
+
+# Create the new output directory with the next available digit
+OUTPUT_PATH = os.path.join(BASE_PATH, f"output_{next_digit:02d}")
+os.makedirs(OUTPUT_PATH)
+
+ACCURACY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "acc_plot.png"])
+LOSSES_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "losses_plot.png"])
+IOU_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "iou_plot.png"])
+DICE_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "dice_plot.png"])
+PIXEL_ACCURACY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "pixel_accuracyplot.png"])
+RECALL_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "recall_plot.png"])
+SPECIFICTY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "specificty.png"])
+
 
 
 # plotting graphs
@@ -375,18 +417,19 @@ plt.title("Training & Validation Accuracy on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Accuracy (%)")
 plt.legend(loc="lower left")
-plt.savefig(config.ACCURACY_PLOT_PATH)
+plt.savefig(ACCURACY_PLOT_PATH)
+
 
 # plot the training & validation loss
 plt.style.use("ggplot")
 plt.figure()
-plt.plot(H["train_loss"][-1].detach().numpy(), label="train_loss")
-plt.plot(H["val_loss"][-1].detach().numpy(), label="val_loss")
+plt.plot(H["train_loss"], label="train_loss")
+plt.plot(H["val_loss"], label="val_loss")
 plt.title("Training & Validation Loss on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss")
 plt.legend(loc="lower left")
-plt.savefig(config.LOSSES_PLOT_PATH)
+plt.savefig(LOSSES_PLOT_PATH)
 
 # plot the training & validation iou
 plt.style.use("ggplot")
@@ -397,7 +440,7 @@ plt.title("Training & Validation IoU on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("iou")
 plt.legend(loc="lower left")
-plt.savefig(config.IOU_PLOT_PATH)
+plt.savefig(IOU_PLOT_PATH)
 
 # plot the training & validation dice coefficient
 plt.style.use("ggplot")
@@ -408,7 +451,7 @@ plt.title("Training & Validation Dice Coefficient on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("dice coefficient")
 plt.legend(loc="lower left")
-plt.savefig(config.DICE_PLOT_PATH)
+plt.savefig(DICE_PLOT_PATH)
 
 # plot the training & validation specificity
 plt.style.use("ggplot")
@@ -419,7 +462,7 @@ plt.title("Training & Validation specificity on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("specificity")
 plt.legend(loc="lower left")
-plt.savefig(config.SPECIFICTY_PLOT_PATH)
+plt.savefig(SPECIFICTY_PLOT_PATH)
 
 # plot the training & validation sensitivity
 plt.style.use("ggplot")
@@ -430,4 +473,111 @@ plt.title("Training & Validation Sensitivity on Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Sensitivity")
 plt.legend(loc="lower left")
-plt.savefig(config.RECALL_PLOT_PATH)
+plt.savefig(RECALL_PLOT_PATH)
+
+
+
+#
+#
+#
+# # print("..................Testing..............")
+# # Load the mammogram images and masks path for the test set
+# all_test_image_npy_paths = sorted(Path(test_image_dataset_path).glob("*.npy"))
+# all_test_mask_npy_paths = sorted(Path(test_mask_dataset_path).glob("*.npy"))
+#
+# # Create the test dataset
+# test_dataset = SegmentationDataset(all_test_image_npy_paths, all_test_mask_npy_paths)
+# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.TEST_BATCH_SIZE, shuffle=False)
+#
+#
+# # Testing loop
+# # Create a new model instance
+# model = UNet()
+# # Load the saved model state
+# model.load_state_dict(torch.load('model.pt'))
+# model.eval()
+# test_loss = 0
+# test_accuracy = 0
+# test_iou = 0
+# test_dice = 0
+# test_specificity = 0
+# test_recall = 0
+# with torch.no_grad():
+#     for images, masks in test_loader:
+#         images = images.float()
+#
+#                 # # convert CBIS to RGB
+#                 # binary_image = np.expand_dims(images, axis=-1)
+#                 # # Stack the single-channel array to create an RGB image by replicating the channel
+#                 # rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
+#                 # images = rgb_image
+#
+#         masks = masks.float()
+#         masks = (masks - masks.min()) / (masks.max() - masks.min())
+#
+#
+#         # Resize the target tensor to match the shape of the input tensor
+#         # print("images_testing", images.shape)
+#         # Resize the target tensor to match the shape of the input tensor
+#         images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
+#         images = images_tensor.view(4, 3, 256, 256)
+#
+#         # print("images_testing", images.shape)
+#         masks = masks.unsqueeze(1)
+#         # masks = F.interpolate(masks, size=(512, 512), mode='bilinear')
+#
+#         # Forward pass
+#         outputs = model(images)
+#
+#
+#         ## Calculate the loss
+#         outputs = torch.sigmoid(outputs)
+#         # loss = loss_function(outputs, masks)
+#         # loss = loss_function.dice_loss(outputs, masks)
+#         val_loss += loss
+#         loss = loss_function.bce_dice_loss(outputs, masks)
+#
+#
+#
+#         # calculate accuracy
+#         accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
+#         # print("accuracy", accuracy)
+#         val_accuracy += accuracy
+#
+#         # calculate accuracy
+#         recall = metrics.calculate_recall(tp, tn, fp, fn)
+#         # print("recall", recall)
+#         val_recall += recall
+#
+#         # calculate accuracy
+#         dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
+#         # print("dice_coefficient", dice_coefficient)
+#         val_dice += dice_coefficient
+#
+#         # calculate the iou
+#         iou = metrics.calculate_iou(masks, outputs)
+#         val_iou += iou
+#         # print(f"Validation IoU: {val_iou}")
+#
+#         # calculate the iou
+#         specificity = metrics.calculate_specificity(tp, tn, fp, fn)
+#         val_specificity += specificity
+#         # print(f"Validation specificity: {val_specificity}")
+#
+#
+# # Calculate mean test evaluation metrics
+# test_steps = len(test_dataset)
+# mean_test_loss = test_loss / test_steps
+# mean_test_accuracy = (test_accuracy / test_steps) * 100
+# mean_test_iou = test_iou / test_steps
+# mean_test_dice = test_dice / test_steps
+# mean_test_specificity = test_specificity / test_steps
+# mean_test_recall = test_recall / test_steps
+#
+# # Display mean test evaluation metrics
+# print("Mean Test Loss:", mean_test_loss)
+# print("Mean Test Accuracy:", mean_test_accuracy)
+# print("Mean Test IoU:", mean_test_iou)
+# print("Mean Test Dice Coefficient:", mean_test_dice)
+# print("Mean Test Specificity:", mean_test_specificity)
+# print("Mean Test Recall:", mean_test_recall)
