@@ -5,7 +5,7 @@ DATASET_PATH = os.path.join("dataset","INbreast")
 # define the path to the images and masks dataset
 
 
-EPOCHS = 170
+EPOCHS = 120
 Learning_rate = 0.0001
 FOLDS = 5
 BATCH_SIZE = 4

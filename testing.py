@@ -46,7 +46,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 # Create a new model instance
 model = UNet()
 # Load the saved model state
-model_path = "models/model_2.pt"
+model_path = "models/model_30.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
@@ -65,6 +65,7 @@ test_dice = 0
 test_specificity = 0
 test_recall = 0
 with torch.no_grad():
+    test_steps = 0
     for images, masks in test_loader:
         images = images.float()
 
@@ -104,8 +105,8 @@ with torch.no_grad():
 
         # calculate accuracy
         accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
-        # print("accuracy", accuracy)
         test_accuracy += accuracy
+
 
         # calculate accuracy
         recall = metrics.calculate_recall(tp, tn, fp, fn)
@@ -127,9 +128,10 @@ with torch.no_grad():
         test_specificity += specificity
         # print(f"testing specificity: {test_specificity}")
 
+        test_steps += 1
+
 
 # Calculate mean test evaluation metrics
-test_steps = len(test_dataset)
 mean_test_loss = test_loss / test_steps
 mean_test_accuracy = (test_accuracy / test_steps) * 100
 mean_test_iou = test_iou / test_steps

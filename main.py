@@ -43,15 +43,7 @@ all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 #check for existing models
 # Find existing model files in the directory
 models_dir = "models"
-# List existing models that start with 'model_' and end with '.pt'
-existing_models = [filename for filename in os.listdir(models_dir) if filename.startswith('model_') and filename.endswith('.pt')]
 
-# Determine the next available model count
-model_count = len(existing_models) + 1 if existing_models else 1
-
-# Construct the model filename based on the count
-model_filename = os.path.join(models_dir, f'model_{model_count}.pt')
-print(model_filename)
 
 # Define lists to store evaluation metrics across folds
 all_train_loss, all_val_loss = [], []
@@ -68,6 +60,19 @@ kf = KFold(n_splits=config.FOLDS, shuffle=True, random_state=42)
 
 for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     print(f"Fold {fold + 1}")
+
+    # Selecting the model name
+    # List existing models that start with 'model_' and end with '.pt'
+    existing_models = [filename for filename in os.listdir(models_dir) if
+                       filename.startswith('model_') and filename.endswith('.pt')]
+
+    # Determine the next available model count
+    model_count = len(existing_models) + 1 if existing_models else 1
+
+    # Construct the model filename based on the count
+    model_filename = os.path.join(models_dir, f'model_{model_count}.pt')
+    print(model_filename)
+
 
     # Split dataset into train and validation for this fold
     train_images = [all_image_npy_paths[i] for i in train_idx]
