@@ -1,11 +1,11 @@
 import os
 
-DATASET_PATH = os.path.join("dataset")
+DATASET_PATH = os.path.join("dataset","INbreast")
 # DATASET_PATH = os.path.join("dataset", "CBIS", "train")
 # define the path to the images and masks dataset
 
 
-EPOCHS = 120
+EPOCHS = 170
 Learning_rate = 0.0001
 FOLDS = 5
 BATCH_SIZE = 4

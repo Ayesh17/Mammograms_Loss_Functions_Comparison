@@ -46,7 +46,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 # Create a new model instance
 model = UNet()
 # Load the saved model state
-model_path = "models/model_1.pt"
+model_path = "models/model_2.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
@@ -82,7 +82,8 @@ with torch.no_grad():
         # print("images_testing", images.shape)
         # Resize the target tensor to match the shape of the input tensor
         images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
-        images = images_tensor.view(4, 3, 256, 256)
+        # images = images_tensor.view(4, 3, 256, 256)
+        images = images_tensor.permute(0, 3, 1, 2)
 
         # print("images_testing", images.shape)
         masks = masks.unsqueeze(1)
@@ -137,4 +138,32 @@ mean_test_specificity = test_specificity / test_steps
 mean_test_recall = test_recall / test_steps
 
 print("Testing accuracy: {:.2f}%, Testing Loss: {:.4f}, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_loss, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
+
+
+# Visualize and save the output as a PNG
+
+# Plot some sample outputs, images, masks, or any relevant data
+sample_output = outputs[0].cpu().numpy().squeeze()  # Assuming a single output from the batch
+sample_image = images[0].permute(1, 2, 0)  # Assuming a single image from the batch
+sample_image = sample_image[:,:,0]
+sample_mask = masks[0].cpu().numpy().squeeze()  # Assuming a single mask from the batch
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+axes[0].imshow(sample_output, cmap='gray')
+axes[0].set_title('Model Output')
+
+axes[1].imshow(sample_image)
+axes[1].set_title('Input Image')
+
+axes[2].imshow(sample_mask, cmap='gray')
+axes[2].set_title('Ground Truth Mask')
+
+plt.tight_layout()
+
+# Save the plot as a PNG file
+# plt.savefig('output.png')
+
+# Show the plot if needed
+plt.show()
 

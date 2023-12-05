@@ -89,8 +89,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
     # calculate steps per epoch for training and test set
-    train_steps = len(train_dataset) // config.BATCH_SIZE
-    val_steps = len(val_dataset) // config.BATCH_SIZE
+    # train_steps = len(train_dataset) // config.BATCH_SIZE
+    # val_steps = len(val_dataset) // config.BATCH_SIZE
+
 
     # Create the model
     # model = AUNet_R16()
@@ -98,9 +99,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     # model = build_unet()
 
     # Define the loss function
-    # loss_function = nn.BCELoss()
+    loss_function = nn.BCELoss()
     # loss_function = nn.CrossEntropyLoss()
-    loss_function = Semantic_loss_functions()
+    # loss_function = Semantic_loss_functions()
 
     # Define the optimizer
     optimizer = optim.Adam(model.parameters(), lr = config.Learning_rate)
@@ -112,16 +113,17 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [], "train_iou": [], "val_iou": [], "train_dice": [], "val_dice": [], "train_specificity": [], "val_specificity": [] , "train_recall": [], "val_recall": [] }
 
     min_valid_loss = np.inf
-
+    lr = config.Learning_rate
     # Train the model
     for epoch in range(config.EPOCHS):
         if epoch == 39:
-            config.Learning_rate = 0.00005
+            lr = 0.00005
         elif epoch == 69:
-            config.Learning_rate = 0.00001
+            lr = 0.00001
         elif epoch == 99:
-            config.Learning_rate = 0.000001
-        print("Epoch :", epoch+1, config.Learning_rate)
+            lr = 0.000001
+        optimizer = optim.Adam(model.parameters(), lr)
+        print("Epoch :", epoch+1, lr)
 
         # print(".............Training.............")
         # Train loop
@@ -133,6 +135,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
         train_specificity = 0
         train_recall = 0
         # train_loop = enumerate(tqdm.tqdm(train_loader, total=len(train_loader), leave=True))
+        train_steps = 0
         for images, masks in train_loader:
             images = images.float()
 
@@ -153,7 +156,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             # print("images_training", images.shape)
             # Resize the target tensor to match the shape of the input tensor
             images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
-            images = images_tensor.view(4, 3, 256, 256)
+            images = images_tensor.permute(0, 3, 1, 2)
             masks = masks.unsqueeze(1)
 
             # Forward pass
@@ -163,22 +166,21 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             outputs = torch.sigmoid(outputs)
 
             # Calculate the loss
-            # loss = loss_function(outputs, masks)
+            loss = loss_function(outputs, masks)
             # print("Mean Loss:", loss.item())
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            loss = loss_function.bce_dice_loss(outputs, masks)
+            # loss = loss_function.bce_dice_loss(outputs, masks)
             train_loss += loss
 
-
+            # calculate metrics
             tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
-            # print("aaaaa")
             # print("metrics", tp, tn, fp, fn)
 
             # calculate accuracy
             accuracy = metrics. calclate_accuracy(tp, tn, fp, fn)
-            # print("accuracy", accuracy)
+            # print("train accuracy", accuracy)
             train_accuracy += accuracy
 
             # calculate accuracy
@@ -208,6 +210,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             loss.backward()
             optimizer.step()
 
+            train_steps += 1
+
             # Print the accuracy
             # print(f'Accuracy: {accuracy}')
 
@@ -231,6 +235,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
         val_recall = 0
         with torch.no_grad():
             # val_loop = enumerate(tqdm.tqdm(val_loader, total=len(val_loader), leave=True))
+            val_steps = 0
             for images, masks in val_loader:
 
                 images = images.float()
@@ -250,7 +255,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 # Resize the target tensor to match the shape of the input tensor
                 # images_tensor = torch.tensor(images, dtype=torch.float32)
                 images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
-                images = images_tensor.view(4, 3, 256, 256)
+                images = images_tensor.permute(0, 3, 1, 2)
+                # print("images", images.shape)
 
                 # print("images_testing", images.shape)
                 masks = masks.unsqueeze(1)
@@ -262,12 +268,15 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
                 ## Calculate the loss
                 outputs = torch.sigmoid(outputs)
-                # loss = loss_function(outputs, masks)
+                loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
+                # loss = loss_function.bce_dice_loss(outputs, masks)
                 val_loss += loss
-                loss = loss_function.bce_dice_loss(outputs, masks)
 
 
+                # calculate metrics
+                tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
+                # print("metrics", tp, tn, fp, fn)
 
                 # calculate accuracy
                 accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
@@ -294,6 +303,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 val_specificity += specificity
                 # print(f"Validation specificity: {val_specificity}")
 
+                val_steps += 1
+
 
             # Print the accuracy
             val_accuracy = (val_accuracy / val_steps) * 100
@@ -303,6 +314,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             val_specificity = val_specificity / val_steps
             val_recall = val_recall / val_steps
 
+            # print("train_steps", train_steps)
+            # print("val_steps", val_steps)
 
             print("Training accuracy: {:.2f}%, Validation accuracy: {:.2f}%, Traning Loss: {:.4f}, Validation Loss: {:.4f}, Traning Sensitivity: {:.4f}, Validation Sensitivity: {:.4f}, ".format(train_accuracy, val_accuracy, train_loss, val_loss, train_recall, val_recall))
             print("Training iou: {:.4f}, Validation iou: {:.4f}, Traning dice: {:.4f}, Validation dice: {:.4f}, Traning specificity: {:.4f}, Validation specificity: {:.4f}".format(train_iou, val_iou, train_dice, val_dice, train_specificity, val_specificity))

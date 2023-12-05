@@ -8,6 +8,9 @@ class Evaluation_metrices:
     def calculate_metrics(output, target):
         # print("output_shape", output.shape)
         # print("target_shape", target.shape)
+        tp = tn = fp = fn = 0
+        for i in range(len(output)):
+            # print("output_shape", output[i].shape)
         # print()
         # print("output", output[1][0])
         # print("output", output[1][1])
@@ -15,28 +18,28 @@ class Evaluation_metrices:
         # print("target", target[1][1])
 
 
-        threshold = 0.5
-        converted_output = (output > threshold).to(torch.int)
-        converted_target = (target > threshold).to(torch.int)
+            threshold = 0.5
+            converted_output = (output[i] > threshold).to(torch.int)
+            converted_target = (target[i] > threshold).to(torch.int)
 
-        # print("converted_output", converted_output.shape)
-        # print("converted_target", converted_target.shape)
+            # print("converted_output", converted_output.shape)
+            # print("converted_target", converted_target.shape)
 
-        # torch.set_printoptions(profile="full")
-        # print("converted_output", converted_output[1][0])
-        # print("converted_target", converted_target[1][0])
+            # torch.set_printoptions(profile="full")
+            # print("converted_output", converted_output[1][0])
+            # print("converted_target", converted_target[1][0])
 
-        # Assuming converted_target is a PyTorch tensor
-        # tensor_data = target[1][0].detach().numpy()  # Convert to NumPy array
-        # print(np.unique(tensor_data))  # Get unique elements using NumPy's unique function
-        # tensor_data = converted_target[1][0].detach().numpy()  # Convert to NumPy array
-        # print(np.unique(tensor_data))
+            # Assuming converted_target is a PyTorch tensor
+            # tensor_data = target[1][0].detach().numpy()  # Convert to NumPy array
+            # print(np.unique(tensor_data))  # Get unique elements using NumPy's unique function
+            # tensor_data = converted_target[1][0].detach().numpy()  # Convert to NumPy array
+            # print(np.unique(tensor_data))
 
 
-        tp = torch.sum((converted_output == 1) & (converted_target == 1))
-        fp = torch.sum((converted_output == 1) & (converted_target == 0))
-        tn = torch.sum((converted_output == 0) & (converted_target == 0))
-        fn = torch.sum((converted_output == 0) & (converted_target == 1))
+            tp += torch.sum((converted_output == 1) & (converted_target == 1))
+            fp += torch.sum((converted_output == 1) & (converted_target == 0))
+            tn += torch.sum((converted_output == 0) & (converted_target == 0))
+            fn += torch.sum((converted_output == 0) & (converted_target == 1))
 
         pos = torch.sum(converted_target == 1)
         neg = torch.sum(converted_target == 0)

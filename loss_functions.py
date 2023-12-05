@@ -79,7 +79,7 @@ class Semantic_loss_functions:
 
     def bce_dice_loss(self, y_pred, y_true):
         loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true)
-        return loss / 2.0
+        return loss
 
     def confusion(self, y_pred, y_true):
         smooth = 1
