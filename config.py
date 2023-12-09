@@ -1,7 +1,7 @@
 import os
 
-DATASET_PATH = os.path.join("dataset","INbreast")
-# DATASET_PATH = os.path.join("dataset", "CBIS", "train")
+# DATASET_PATH = os.path.join("dataset","INbreast")
+DATASET_PATH = os.path.join("dataset", "CBIS-DDSM")
 # define the path to the images and masks dataset
 
 

@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from matplotlib import pyplot as plt
 
 beta = 0.25
 alpha = 0.25
@@ -78,6 +79,26 @@ class Semantic_loss_functions:
 
 
     def bce_dice_loss(self, y_pred, y_true):
+
+
+        # sample_output = y_pred[1].cpu().detach().numpy() # Assuming a single output from the batch
+        # original = y_true[1].cpu().numpy().squeeze()  # Assuming a single output from the batch
+        # fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        # axes[0].imshow(sample_output[0], cmap='gray')
+        # axes[0].set_title('Model Output')
+        # axes[1].imshow(original, cmap='gray')
+        # axes[1].set_title('Mask')
+        # plt.show()
+
+        # sample_output = y_pred[1].cpu().numpy().squeeze()  # Assuming a single output from the batch
+        # original = y_true[1].cpu().numpy().squeeze()  # Assuming a single output from the batch
+        # fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        # axes[0].imshow(sample_output, cmap='gray')
+        # axes[0].set_title('Model Output')
+        # axes[1].imshow(original, cmap='gray')
+        # axes[1].set_title('Mask')
+        # plt.show()
+
         loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true)
         return loss
 
