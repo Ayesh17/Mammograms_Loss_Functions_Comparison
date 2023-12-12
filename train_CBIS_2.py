@@ -1,5 +1,4 @@
 import os
-import random
 from pathlib import Path
 
 import torch
@@ -11,10 +10,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 import tqdm
-from torchvision.transforms import v2
 
 from dataset import SegmentationDataset
-from augmented_dataset import AugmentedSegmentationDataset
 # from unet import UNet
 from UNet_P import UNet
 from evaluation_metrices import Evaluation_metrices
@@ -41,16 +38,6 @@ test_mask_dataset_path = os.path.join(train_path, "masks")
 all_image_npy_paths = sorted(Path(train_image_dataset_path).glob("*.npy"))
 all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
-
-rotation_angle = random.randint(1, 3) * 90
-
-# Define your transformations
-transformations = v2.Compose([
-    v2.RandomHorizontalFlip(0.5),
-    v2.RandomVerticalFlip(0.5),
-    v2.RandomRotation(degrees=(rotation_angle, rotation_angle))
-    # Add more transformations as needed
-])
 
 
 #check for existing models
@@ -96,17 +83,12 @@ train_images, val_images, train_masks, val_masks = train_test_split(all_image_np
 # val_masks = [all_mask_npy_paths[i] for i in val_idx]
 
 # Create the training and validation datasets for this fold
-train_dataset_1 = SegmentationDataset(train_images, train_masks)
-train_dataset = AugmentedSegmentationDataset(train_images, train_masks, transform=transformations)
+train_dataset = SegmentationDataset(train_images, train_masks)
 val_dataset = SegmentationDataset(val_images, val_masks)
 
-
 # Create the data loaders for this fold
-# train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
-
-
 
 
 print(f"[INFO] found {len(train_dataset)} examples in the training set...")
@@ -185,21 +167,8 @@ for epoch in range(config.EPOCHS):
         # Resize the target tensor to match the shape of the input tensor
         images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
         # print("images_tensor", images_tensor.shape)
-        # # Update image dimensions to suite augmented data
-        # images_tensor = images_tensor.squeeze(1)
-        # images_tensor = images_tensor.reshape(4, 256, 256, 3)
-
-        # sample_output = images_tensor[0].cpu().numpy().squeeze()  # Assuming a single output from the batch
-        # plt.imshow(sample_output, cmap='gray')
-        # plt.show()
-
-        images_tensor = torch.as_tensor(images_tensor, dtype=torch.float32).clone().detach()
         images = images_tensor.permute(0, 3, 1, 2)
-
-
-        # Update image dimensions to suite augmented data
         masks = masks.unsqueeze(1)
-
 
         # Forward pass
         outputs = model(images)
@@ -215,7 +184,7 @@ for epoch in range(config.EPOCHS):
 
         # print("outputs",torch.min(outputs), torch.max(outputs))
         # print("masks",torch.min(masks), torch.max(masks))
-        loss = loss_function.bce_dice_loss(outputs, masks)
+        loss = loss_function.dice_loss(outputs, masks)
         train_loss += loss
 
         # calculate metrics
@@ -314,7 +283,7 @@ for epoch in range(config.EPOCHS):
             outputs = torch.sigmoid(outputs)
             # loss = loss_function(outputs, masks)
             # loss = loss_function.dice_loss(outputs, masks)
-            loss = loss_function.bce_dice_loss(outputs, masks)
+            loss = loss_function.dice_loss(outputs, masks)
             val_loss += loss
 
 

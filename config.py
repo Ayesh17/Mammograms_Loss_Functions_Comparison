@@ -1,8 +1,10 @@
 import os
 
-# DATASET_PATH = os.path.join("dataset","INbreast")
+INBREAST_DATASET_PATH = os.path.join("dataset","INbreast")
 DATASET_PATH = os.path.join("dataset", "CBIS-DDSM")
 # define the path to the images and masks dataset
+
+DATASET_PATH_2 = os.path.join("dataset", "CBIS-DDSM_without_CLAHE")
 
 
 EPOCHS = 120
