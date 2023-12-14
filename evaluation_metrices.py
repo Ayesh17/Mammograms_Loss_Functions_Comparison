@@ -10,6 +10,7 @@ class Evaluation_metrices:
         # print("target_shape", target.shape)
         tp = tn = fp = fn = 0
         overall_accuracy = 0
+        overall_precision = 0
         overall_recall = 0
         overall_specificity = 0
         overall_dice = 0
@@ -45,6 +46,7 @@ class Evaluation_metrices:
             # print(tp, " ", fp, " ", tn, " ", fn)
 
             accuracy = 0 if (tp + fp + tn + fn) == 0 else (tp + tn) / (tp + fp + tn + fn)
+            precision = 0 if (tp + fp) == 0 else tp / (tp + fp)
             recall = 0 if (tp + fn) == 0 else (tp) / (tp + fn)
             specificity = 0 if (tn + fp) == 0 else (tn) / (tn + fp)
             dice_coefficient = 0 if ((2 * tp) + fp + fn) == 0 else (2 * tp) / ((2 * tp) + fp + fn)
@@ -52,6 +54,7 @@ class Evaluation_metrices:
 
 
             overall_accuracy += accuracy
+            overall_precision += precision
             overall_recall += recall
             overall_specificity += specificity
             overall_dice += dice_coefficient
@@ -66,7 +69,7 @@ class Evaluation_metrices:
         # print(tp, " ", fp, " ", tn, " ", fn )
 
 
-        return overall_accuracy, overall_recall, overall_specificity, overall_dice, overall_iou
+        return overall_accuracy, overall_precision, overall_recall, overall_specificity, overall_dice, overall_iou
 
     #
     # def calclate_accuracy(tp, tn, fp, fn):

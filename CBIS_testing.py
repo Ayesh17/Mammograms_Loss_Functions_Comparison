@@ -56,6 +56,7 @@ test_accuracy = 0
 test_iou = 0
 test_dice = 0
 test_specificity = 0
+test_precision = 0
 test_recall = 0
 with torch.no_grad():
     test_steps = 0
@@ -92,9 +93,10 @@ with torch.no_grad():
         ## Calculate the loss
         outputs = torch.sigmoid(outputs)
 
-        accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
+        accuracy, precision, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
         test_accuracy += accuracy
+        test_precision += precision
         test_recall += recall
         test_dice += dice_coefficient
         test_iou += iou
@@ -109,9 +111,10 @@ mean_test_accuracy = (test_accuracy / test_steps) * 100
 mean_test_iou = test_iou / test_steps
 mean_test_dice = test_dice / test_steps
 mean_test_specificity = test_specificity / test_steps
+mean_test_precision = test_precision / test_steps
 mean_test_recall = test_recall / test_steps
 
-print("Testing accuracy: {:.2f}%, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
+print("Testing accuracy: {:.2f}%, Testing Precision: {:.4f}, Testing Recall: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_precision, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
 
 
 # Visualize and save the output as a PNG
