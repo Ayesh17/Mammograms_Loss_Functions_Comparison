@@ -23,15 +23,13 @@ import config
 
 
 # paths
-dataset_path = config.DATASET_PATH
+dataset_path = config.CBIS_DATASET_PATH_2
 train_path = os.path.join(dataset_path, "train")
 test_path = os.path.join(dataset_path, "test")
 
 train_image_dataset_path = os.path.join(train_path, "images")
 train_mask_dataset_path = os.path.join(train_path, "masks")
 
-test_image_dataset_path = os.path.join(train_path, "images")
-test_mask_dataset_path = os.path.join(train_path, "masks")
 
 
 # Load the mammogram images and masks path
@@ -42,7 +40,7 @@ all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
 #check for existing models
 # Find existing model files in the directory
-models_dir = "models"
+models_dir = "models/CBIS-DDSM"
 
 
 # Define lists to store evaluation metrics across folds
@@ -188,35 +186,13 @@ for epoch in range(config.EPOCHS):
         train_loss += loss
 
         # calculate metrics
-        tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
-        # print("metrics", tp, tn, fp, fn)
+        accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-        # calculate accuracy
-        accuracy = metrics. calclate_accuracy(tp, tn, fp, fn)
-        # print("train accuracy", accuracy)
         train_accuracy += accuracy
-
-        # calculate accuracy
-        recall = metrics.calculate_recall(tp, tn, fp, fn)
-        # print("recall", recall)
         train_recall += recall
-
-        # calculate accuracy
-        dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-        # print("dice_coefficient", dice_coefficient)
         train_dice += dice_coefficient
-
-
-        # calculate the iou
-        iou = metrics.calculate_iou(tp, tn, fp, fn)
         train_iou += iou
-        # print(f"Training IoU: {train_iou}")
-
-
-        # calculate the specificity
-        specificity = metrics.calculate_specificity(tp, tn, fp, fn)
         train_specificity += specificity
-        # print(f"Training specificity: {train_specificity}")
 
         # Backward pass
         optimizer.zero_grad()
@@ -229,6 +205,7 @@ for epoch in range(config.EPOCHS):
         # print(f'Accuracy: {accuracy}')
 
     # Print the accuracy
+    train_steps = len(train_dataset)
     train_accuracy = (train_accuracy / train_steps) * 100
     train_loss = train_loss / train_steps
     train_iou = train_iou / train_steps
@@ -286,40 +263,20 @@ for epoch in range(config.EPOCHS):
             loss = loss_function.bce_dice_loss(outputs, masks)
             val_loss += loss
 
-
             # calculate metrics
-            tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
-            # print("metrics", tp, tn, fp, fn)
+            accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-            # calculate accuracy
-            accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
-            # print("accuracy", accuracy)
             val_accuracy += accuracy
-
-            # calculate accuracy
-            recall = metrics.calculate_recall(tp, tn, fp, fn)
-            # print("recall", recall)
             val_recall += recall
-
-            # calculate accuracy
-            dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-            # print("dice_coefficient", dice_coefficient)
             val_dice += dice_coefficient
-
-            # calculate the iou
-            iou = metrics.calculate_iou(tp, tn, fp, fn)
             val_iou += iou
-            # print(f"Validation IoU: {val_iou}")
-
-            # calculate the iou
-            specificity = metrics.calculate_specificity(tp, tn, fp, fn)
             val_specificity += specificity
-            # print(f"Validation specificity: {val_specificity}")
 
             val_steps += 1
 
 
         # Print the accuracy
+        val_steps = len(val_dataset)
         val_accuracy = (val_accuracy / val_steps) * 100
         val_loss = val_loss / val_steps
         val_iou = val_iou / val_steps
@@ -405,7 +362,7 @@ print("Training iou: {:.4f}, Validation iou: {:.4f}, Traning dice: {:.4f}, Valid
 
 # Output paths
 # Define the base path
-BASE_PATH = "output"
+BASE_PATH = "outputs/CBIS-DDSM"
 
 # Create the output directory if it doesn't exist
 if not os.path.exists(BASE_PATH):
@@ -500,110 +457,3 @@ plt.xlabel("Epoch #")
 plt.ylabel("Sensitivity")
 plt.legend(loc="lower left")
 plt.savefig(RECALL_PLOT_PATH)
-
-
-
-#
-#
-#
-# # print("..................Testing..............")
-# # Load the mammogram images and masks path for the test set
-# all_test_image_npy_paths = sorted(Path(test_image_dataset_path).glob("*.npy"))
-# all_test_mask_npy_paths = sorted(Path(test_mask_dataset_path).glob("*.npy"))
-#
-# # Create the test dataset
-# test_dataset = SegmentationDataset(all_test_image_npy_paths, all_test_mask_npy_paths)
-# test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.TEST_BATCH_SIZE, shuffle=False)
-#
-#
-# # Testing loop
-# # Create a new model instance
-# model = UNet()
-# # Load the saved model state
-# model.load_state_dict(torch.load('model.pt'))
-# model.eval()
-# test_loss = 0
-# test_accuracy = 0
-# test_iou = 0
-# test_dice = 0
-# test_specificity = 0
-# test_recall = 0
-# with torch.no_grad():
-#     for images, masks in test_loader:
-#         images = images.float()
-#
-#                 # # convert CBIS to RGB
-#                 # binary_image = np.expand_dims(images, axis=-1)
-#                 # # Stack the single-channel array to create an RGB image by replicating the channel
-#                 # rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
-#                 # images = rgb_image
-#
-#         masks = masks.float()
-#         masks = (masks - masks.min()) / (masks.max() - masks.min())
-#
-#
-#         # Resize the target tensor to match the shape of the input tensor
-#         # print("images_testing", images.shape)
-#         # Resize the target tensor to match the shape of the input tensor
-#         images_tensor = torch.as_tensor(images, dtype=torch.float32).clone().detach()
-#         images = images_tensor.view(4, 3, 256, 256)
-#
-#         # print("images_testing", images.shape)
-#         masks = masks.unsqueeze(1)
-#         # masks = F.interpolate(masks, size=(512, 512), mode='bilinear')
-#
-#         # Forward pass
-#         outputs = model(images)
-#
-#
-#         ## Calculate the loss
-#         outputs = torch.sigmoid(outputs)
-#         # loss = loss_function(outputs, masks)
-#         # loss = loss_function.dice_loss(outputs, masks)
-#         val_loss += loss
-#         loss = loss_function.bce_dice_loss(outputs, masks)
-#
-#
-#
-#         # calculate accuracy
-#         accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
-#         # print("accuracy", accuracy)
-#         val_accuracy += accuracy
-#
-#         # calculate accuracy
-#         recall = metrics.calculate_recall(tp, tn, fp, fn)
-#         # print("recall", recall)
-#         val_recall += recall
-#
-#         # calculate accuracy
-#         dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-#         # print("dice_coefficient", dice_coefficient)
-#         val_dice += dice_coefficient
-#
-#         # calculate the iou
-#         iou = metrics.calculate_iou(masks, outputs)
-#         val_iou += iou
-#         # print(f"Validation IoU: {val_iou}")
-#
-#         # calculate the iou
-#         specificity = metrics.calculate_specificity(tp, tn, fp, fn)
-#         val_specificity += specificity
-#         # print(f"Validation specificity: {val_specificity}")
-#
-#
-# # Calculate mean test evaluation metrics
-# test_steps = len(test_dataset)
-# mean_test_loss = test_loss / test_steps
-# mean_test_accuracy = (test_accuracy / test_steps) * 100
-# mean_test_iou = test_iou / test_steps
-# mean_test_dice = test_dice / test_steps
-# mean_test_specificity = test_specificity / test_steps
-# mean_test_recall = test_recall / test_steps
-#
-# # Display mean test evaluation metrics
-# print("Mean Test Loss:", mean_test_loss)
-# print("Mean Test Accuracy:", mean_test_accuracy)
-# print("Mean Test IoU:", mean_test_iou)
-# print("Mean Test Dice Coefficient:", mean_test_dice)
-# print("Mean Test Specificity:", mean_test_specificity)
-# print("Mean Test Recall:", mean_test_recall)

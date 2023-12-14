@@ -1,5 +1,7 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
+import skimage
 from matplotlib import pyplot as plt
 
 beta = 0.25
@@ -179,3 +181,34 @@ class Semantic_loss_functions:
         ms_ssim_loss = self.ssim_loss(y_pred, y_true)
         jacard_loss = self.jacard_loss(y_pred, y_true)
         return bce_loss + ms_ssim_loss + jacard_loss
+
+    def hausdorff_index(self, y_pred, y_true):
+        for i in range(4):
+            print("y_pred", y_pred[i][0].shape)
+            print("y_pred", y_pred[i][0])
+            print("y_pred", y_true[i][0].shape)
+            print("y_pred", y_true[i][0])
+            y_pred = y_pred.cpu().detach().numpy()
+            y_true = y_true.cpu().detach().numpy()
+            # Threshold values in y_pred[i][0]
+            thresholded_pred = (y_pred > 0.5).astype(np.uint8)
+            thresholded_true = (y_true > 0.5).astype(np.uint8)
+
+            print("thresholded_pred", thresholded_pred)
+            print("thresholded_true", thresholded_true)
+
+            # Compute Hausdorff distance
+            coefficient = skimage.metrics.hausdorff_distance(thresholded_true, thresholded_pred)
+            print("coefficient", coefficient)
+
+        return coefficient
+
+    def hausdorff_loss(self, y_pred, y_true):
+        total_loss = 0
+        y_pred = torch.where(y_pred > 0.5, torch.ones_like(y_pred), torch.zeros_like(y_pred))
+        y_true = torch.where(y_true > 0.5, torch.ones_like(y_true), torch.zeros_like(y_true))
+        for i in range(4):
+            coefficient = self.hausdorff_index(y_pred[i][0], y_true[i][0])
+            total_loss += coefficient
+
+        return total_loss

@@ -23,14 +23,11 @@ import config
 
 # paths
 dataset_path = config.INBREAST_DATASET_PATH
-train_path = os.path.join(dataset_path, "train")
+
 test_path = os.path.join(dataset_path, "test")
 
-train_image_dataset_path = os.path.join(train_path, "images")
-train_mask_dataset_path = os.path.join(train_path, "masks")
-
-test_image_dataset_path = os.path.join(train_path, "images")
-test_mask_dataset_path = os.path.join(train_path, "masks")
+test_image_dataset_path = os.path.join(test_path, "images")
+test_mask_dataset_path = os.path.join(test_path, "masks")
 
 # print("..................Testing..............")
 # Load the mammogram images and masks path for the test set
@@ -47,7 +44,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 model = UNet()
 # model = AUNet_R16()
 # Load the saved model state
-model_path = "models/INbreast/model_15.pt"
+model_path = "models/INbreast/model_2.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
@@ -59,14 +56,12 @@ loss_function = Semantic_loss_functions()
 
 
 model.eval()
-test_loss = 0
 test_accuracy = 0
 test_iou = 0
 test_dice = 0
 test_specificity = 0
 test_recall = 0
 with torch.no_grad():
-    test_steps = 0
     for images, masks in test_loader:
         images = images.float()
 
@@ -101,50 +96,28 @@ with torch.no_grad():
 
         ## Calculate the loss
         outputs = torch.sigmoid(outputs)
-        # loss = loss_function(outputs, masks)
-        # loss = loss_function.dice_loss(outputs, masks)
-        loss = loss_function.bce_dice_loss(outputs, masks)
-        test_loss += loss
+        accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-        tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
 
-        # calculate accuracy
-        accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
         test_accuracy += accuracy
-
-
-        # calculate accuracy
-        recall = metrics.calculate_recall(tp, tn, fp, fn)
-        # print("recall", recall)
         test_recall += recall
-
-        # calculate accuracy
-        dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-        # print("dice_coefficient", dice_coefficient)
         test_dice += dice_coefficient
-
-        # calculate the iou
-        iou = metrics.calculate_iou(tp, tn, fp, fn)
         test_iou += iou
-        # print(f"testing IoU: {test_iou}")
-
-        # calculate the iou
-        specificity = metrics.calculate_specificity(tp, tn, fp, fn)
         test_specificity += specificity
-        # print(f"testing specificity: {test_specificity}")
 
-        test_steps += 1
+
+
 
 
 # Calculate mean test evaluation metrics
-mean_test_loss = test_loss / test_steps
+test_steps = len(test_dataset)
 mean_test_accuracy = (test_accuracy / test_steps) * 100
 mean_test_iou = test_iou / test_steps
 mean_test_dice = test_dice / test_steps
 mean_test_specificity = test_specificity / test_steps
 mean_test_recall = test_recall / test_steps
 
-print("Testing accuracy: {:.2f}%, Testing Loss: {:.4f}, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_loss, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
+print("Testing accuracy: {:.2f}%, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
 
 
 # Visualize and save the output as a PNG

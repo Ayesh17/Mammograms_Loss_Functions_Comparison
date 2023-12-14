@@ -25,13 +25,9 @@ import config
 # paths
 dataset_path = config.INBREAST_DATASET_PATH
 train_path = os.path.join(dataset_path, "train")
-test_path = os.path.join(dataset_path, "test")
 
 train_image_dataset_path = os.path.join(train_path, "images")
 train_mask_dataset_path = os.path.join(train_path, "masks")
-
-test_image_dataset_path = os.path.join(train_path, "images")
-test_mask_dataset_path = os.path.join(train_path, "masks")
 
 
 
@@ -104,9 +100,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     # model = build_unet()
 
     # Define the loss function
-    loss_function = nn.BCELoss()
+    # loss_function = nn.BCELoss()
     # loss_function = nn.CrossEntropyLoss()
-    # loss_function = Semantic_loss_functions()
+    loss_function = Semantic_loss_functions()
 
     # Define the optimizer
     optimizer = optim.Adam(model.parameters(), lr = config.Learning_rate)
@@ -140,7 +136,6 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
         train_specificity = 0
         train_recall = 0
         # train_loop = enumerate(tqdm.tqdm(train_loader, total=len(train_loader), leave=True))
-        train_steps = 0
         for images, masks in train_loader:
             images = images.float()
 
@@ -177,56 +172,35 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
             # Calculate the loss
-            loss = loss_function(outputs, masks)
+            # loss = loss_function(outputs, masks)
             # print("Mean Loss:", loss.item())
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            # loss = loss_function.dice_loss(outputs, masks)
+            loss = loss_function.bce_dice_loss(outputs, masks)
             train_loss += loss
 
             # calculate metrics
-            tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
-            # print("metrics", tp, tn, fp, fn)
+            accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-            # calculate accuracy
-            accuracy = metrics. calclate_accuracy(tp, tn, fp, fn)
-            # print("train accuracy", accuracy)
             train_accuracy += accuracy
-
-            # calculate accuracy
-            recall = metrics.calculate_recall(tp, tn, fp, fn)
-            # print("recall", recall)
             train_recall += recall
-
-            # calculate accuracy
-            dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-            # print("dice_coefficient", dice_coefficient)
             train_dice += dice_coefficient
-
-
-            # calculate the iou
-            iou = metrics.calculate_iou(tp, tn, fp, fn)
             train_iou += iou
-            # print(f"Training IoU: {train_iou}")
-
-
-            # calculate the specificity
-            specificity = metrics.calculate_specificity(tp, tn, fp, fn)
             train_specificity += specificity
-            # print(f"Training specificity: {train_specificity}")
 
             # Backward pass
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            train_steps += 1
 
             # Print the accuracy
             # print(f'Accuracy: {accuracy}')
 
         # Print the accuracy
+        train_steps = len(train_dataset)
+        # print("train_steps", train_steps)
         train_accuracy = (train_accuracy / train_steps) * 100
         train_loss = train_loss / train_steps
         train_iou = train_iou / train_steps
@@ -246,7 +220,6 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
         val_recall = 0
         with torch.no_grad():
             # val_loop = enumerate(tqdm.tqdm(val_loader, total=len(val_loader), leave=True))
-            val_steps = 0
             for images, masks in val_loader:
 
                 images = images.float()
@@ -280,45 +253,26 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
                 ## Calculate the loss
                 outputs = torch.sigmoid(outputs)
-                loss = loss_function(outputs, masks)
+                # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                # loss = loss_function.dice_loss(outputs, masks)
+                loss = loss_function.bce_dice_loss(outputs, masks)
                 val_loss += loss
 
 
                 # calculate metrics
-                tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
-                # print("metrics", tp, tn, fp, fn)
+                accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-                # calculate accuracy
-                accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
-                # print("accuracy", accuracy)
                 val_accuracy += accuracy
-
-                # calculate accuracy
-                recall = metrics.calculate_recall(tp, tn, fp, fn)
-                # print("recall", recall)
                 val_recall += recall
-
-                # calculate accuracy
-                dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-                # print("dice_coefficient", dice_coefficient)
                 val_dice += dice_coefficient
-
-                # calculate the iou
-                iou = metrics.calculate_iou(tp, tn, fp, fn)
                 val_iou += iou
-                # print(f"Validation IoU: {val_iou}")
-
-                # calculate the iou
-                specificity = metrics.calculate_specificity(tp, tn, fp, fn)
                 val_specificity += specificity
-                # print(f"Validation specificity: {val_specificity}")
 
-                val_steps += 1
 
 
             # Print the accuracy
+            val_steps = len(val_dataset)
+            # print("val_steps", val_steps)
             val_accuracy = (val_accuracy / val_steps) * 100
             val_loss = val_loss / val_steps
             val_iou = val_iou / val_steps

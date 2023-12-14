@@ -22,15 +22,11 @@ import config
 
 
 # paths
-dataset_path = config.DATASET_PATH_2
-train_path = os.path.join(dataset_path, "train")
+dataset_path = config.CBIS_DATASET_PATH_2
 test_path = os.path.join(dataset_path, "test")
 
-train_image_dataset_path = os.path.join(train_path, "images")
-train_mask_dataset_path = os.path.join(train_path, "masks")
-
-test_image_dataset_path = os.path.join(train_path, "images")
-test_mask_dataset_path = os.path.join(train_path, "masks")
+test_image_dataset_path = os.path.join(test_path, "images")
+test_mask_dataset_path = os.path.join(test_path, "masks")
 
 # print("..................Testing..............")
 # Load the mammogram images and masks path for the test set
@@ -47,15 +43,11 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 model = UNet()
 # model = AUNet_R16()
 # Load the saved model state
-model_path = "models/model_40.pt"
+model_path = "models/CBIS-DDSM/model_1.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
 
-# Define the loss function
-# loss_function = nn.BCELoss()
-# loss_function = nn.CrossEntropyLoss()
-loss_function = Semantic_loss_functions()
 
 
 model.eval()
@@ -99,56 +91,33 @@ with torch.no_grad():
 
         ## Calculate the loss
         outputs = torch.sigmoid(outputs)
-        # loss = loss_function(outputs, masks)
-        # loss = loss_function.dice_loss(outputs, masks)
-        loss = loss_function.bce_dice_loss(outputs, masks)
-        test_loss += loss
 
-        tp, tn, fp, fn = metrics.calculate_metrics(outputs, masks)
+        accuracy, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
-        # calculate accuracy
-        accuracy = metrics.calclate_accuracy(tp, tn, fp, fn)
         test_accuracy += accuracy
-
-
-        # calculate accuracy
-        recall = metrics.calculate_recall(tp, tn, fp, fn)
-        # print("recall", recall)
         test_recall += recall
-
-        # calculate accuracy
-        dice_coefficient = metrics.calculate_dice_coefficient(tp, tn, fp, fn)
-        # print("dice_coefficient", dice_coefficient)
         test_dice += dice_coefficient
-
-        # calculate the iou
-        iou = metrics.calculate_iou(tp, tn, fp, fn)
         test_iou += iou
-        # print(f"testing IoU: {test_iou}")
-
-        # calculate the iou
-        specificity = metrics.calculate_specificity(tp, tn, fp, fn)
         test_specificity += specificity
-        # print(f"testing specificity: {test_specificity}")
 
-        test_steps += 1
+    test_steps += 1
 
 
 # Calculate mean test evaluation metrics
-mean_test_loss = test_loss / test_steps
+test_steps = len(test_dataset)
 mean_test_accuracy = (test_accuracy / test_steps) * 100
 mean_test_iou = test_iou / test_steps
 mean_test_dice = test_dice / test_steps
 mean_test_specificity = test_specificity / test_steps
 mean_test_recall = test_recall / test_steps
 
-print("Testing accuracy: {:.2f}%, Testing Loss: {:.4f}, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_loss, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
+print("Testing accuracy: {:.2f}%, Testing Sensitivity: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
 
 
 # Visualize and save the output as a PNG
 
 # Plot some sample outputs, images, masks, or any relevant data
-sample_output = outputs[1].cpu().numpy().squeeze()  # Assuming a single output from the batch
+sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
 sample_image = images[0].permute(1, 2, 0)  # Assuming a single image from the batch
 sample_image = sample_image[:,:,0]
 sample_mask = masks[0].cpu().numpy().squeeze()  # Assuming a single mask from the batch
@@ -173,6 +142,6 @@ plt.tight_layout()
 plt.show()
 
 
-# sample_output = outputs[1].cpu().numpy().squeeze()  # Assuming a single output from the batch
+# sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
 # plt.imshow(sample_output, cmap='gray')
 # plt.show()
