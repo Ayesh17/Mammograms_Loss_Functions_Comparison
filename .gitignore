@@ -1,6 +1,7 @@
 dataset/*
 models/*
-output/*
 outputs/*
+models_old/*
+outputs_old/*
 model.pt
 .xml
