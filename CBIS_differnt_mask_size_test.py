@@ -22,12 +22,11 @@ import config
 
 
 # paths
-dataset_path = config.INBREAST_DATASET_PATH
+dataset_path = config.CBIS_DATASET_PATH_2
+test_path = os.path.join(dataset_path, "size_test")
 
-test_path = os.path.join(dataset_path, "test")
-
-test_image_dataset_path = os.path.join(test_path, "images")
-test_mask_dataset_path = os.path.join(test_path, "masks")
+test_image_dataset_path = os.path.join(test_path, "images", "large")
+test_mask_dataset_path = os.path.join(test_path, "masks", "large")
 
 # print("..................Testing..............")
 # Load the mammogram images and masks path for the test set
@@ -41,21 +40,18 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 
 # Testing loop
 # Create a new model instance
-# model = UNet()
-model = AUNet_R16()
+model = UNet()
+# model = AUNet_R16()
 # Load the saved model state
-model_path = "models/INbreast/model_66.pt"
+model_path = "models/CBIS-DDSM/model_1.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
 
-# Define the loss function
-# loss_function = nn.BCELoss()
-# loss_function = nn.CrossEntropyLoss()
-loss_function = Semantic_loss_functions()
 
 
 model.eval()
+test_loss = 0
 test_accuracy = 0
 test_iou = 0
 test_dice = 0
@@ -63,20 +59,19 @@ test_specificity = 0
 test_precision = 0
 test_recall = 0
 with torch.no_grad():
+    test_steps = 0
     for images, masks in test_loader:
         images = images.float()
 
-                # # convert CBIS to RGB
-                # binary_image = np.expand_dims(images, axis=-1)
-                # # Stack the single-channel array to create an RGB image by replicating the channel
-                # rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
-                # images = rgb_image
+        # convert CBIS to RGB
+        binary_image = np.expand_dims(images, axis=-1)
+        # Stack the single-channel array to create an RGB image by replicating the channel
+        rgb_image = np.concatenate([binary_image, binary_image, binary_image], axis=-1)
+        images = rgb_image
 
         masks = masks.float()
-
         # to remove different colored masks
         masks = torch.where(masks > 0, torch.ones_like(masks), torch.zeros_like(masks))
-
         # masks = (masks - masks.min()) / (masks.max() - masks.min())
 
 
@@ -97,12 +92,8 @@ with torch.no_grad():
 
         ## Calculate the loss
         outputs = torch.sigmoid(outputs)
-        # print("outputs", outputs.shape)
-        # print("outputs", outputs)
-        # print("masks", masks.shape)
-        # print("masks", masks.unique)
-        accuracy, precision, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
+        accuracy, precision, recall, specificity, dice_coefficient, iou = metrics.calculate_metrics(outputs, masks)
 
         test_accuracy += accuracy
         test_precision += precision
@@ -111,8 +102,7 @@ with torch.no_grad():
         test_iou += iou
         test_specificity += specificity
 
-
-
+    test_steps += 1
 
 
 # Calculate mean test evaluation metrics
@@ -124,13 +114,13 @@ mean_test_specificity = test_specificity / test_steps
 mean_test_precision = test_precision / test_steps
 mean_test_recall = test_recall / test_steps
 
-print("Testing accuracy: {:.2f}%, Testing Precision: {:.4f}, , Testing Rcall: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_precision, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
+print("Testing accuracy: {:.2f}%, Testing Precision: {:.4f}, Testing Recall: {:.4f}, Testing iou: {:.4f}, Testing dice: {:.4f}, Testing specificity: {:.4f}".format(mean_test_accuracy, mean_test_precision, mean_test_recall, mean_test_iou, mean_test_dice, mean_test_specificity))
 
 
 # Visualize and save the output as a PNG
 
 # Plot some sample outputs, images, masks, or any relevant data
-sample_output = outputs[0].cpu().numpy().squeeze()  # Assuming a single output from the batch
+sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
 sample_image = images[0].permute(1, 2, 0)  # Assuming a single image from the batch
 sample_image = sample_image[:,:,0]
 sample_mask = masks[0].cpu().numpy().squeeze()  # Assuming a single mask from the batch
@@ -154,3 +144,7 @@ plt.tight_layout()
 # Show the plot if needed
 plt.show()
 
+
+# sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
+# plt.imshow(sample_output, cmap='gray')
+# plt.show()

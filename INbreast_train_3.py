@@ -101,9 +101,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     # model = build_unet()
 
     # Define the loss function
-    loss_function = nn.BCELoss()
+    # loss_function = nn.BCELoss()
     # loss_function = nn.CrossEntropyLoss()
-    # loss_function = Semantic_loss_functions()
+    loss_function = Semantic_loss_functions()
 
     # Define the optimizer
     optimizer = optim.Adam(model.parameters(), lr = config.Learning_rate)
@@ -114,16 +114,16 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     # initialize a dictionary to store training history
     H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [], "train_iou": [], "val_iou": [], "train_dice": [], "val_dice": [], "train_specificity": [], "val_specificity": [] , "train_recall": [], "val_recall": [], "train_precision": [], "val_precision": []  }
 
-    min_valid_loss = np.inf
-    lr = config.Learning_rate
+    max_valid_dice = 0
+    lr = 0.0001
     # Train the model
     for epoch in range(config.EPOCHS):
-        if epoch == 39:
-            lr = 0.00005
-        elif epoch == 69:
-            lr = 0.00001
-        elif epoch == 99:
-            lr = 0.000001
+        # if epoch == 39:
+        #     lr = 0.00005
+        # elif epoch == 69:
+        #     lr = 0.00001
+        # elif epoch == 99:
+        #     lr = 0.000001
         optimizer = optim.Adam(model.parameters(), lr)
         print("Epoch :", epoch+1, lr)
 
@@ -174,12 +174,12 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
             # Calculate the loss
-            loss = loss_function(outputs, masks)
+            # loss = loss_function(outputs, masks)
             # print("Mean Loss:", loss.item())
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            # loss = loss_function.bce_dice_loss(outputs, masks)
+            loss = loss_function.bce_dice_loss(outputs, masks)
             train_loss += loss
 
             # calculate metrics
@@ -258,9 +258,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
                 ## Calculate the loss
                 outputs = torch.sigmoid(outputs)
-                loss = loss_function(outputs, masks)
+                # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                # loss = loss_function.bce_dice_loss(outputs, masks)
+                loss = loss_function.bce_dice_loss(outputs, masks)
                 val_loss += loss
 
 
@@ -310,9 +310,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             H["val_precision"].append(val_precision)
 
             # Save the model
-            if min_valid_loss > val_loss:
-                print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f}) \t Saving The Model')
-                min_valid_loss = val_loss
+            if max_valid_dice < val_dice:
+                print(f'Validation Dice Increased({max_valid_dice:.6f}--->{val_dice:.6f}) \t Saving The Model')
+                max_valid_dice = val_dice
                 # Saving State Dict
 
                 torch.save(model.state_dict(), model_filename)

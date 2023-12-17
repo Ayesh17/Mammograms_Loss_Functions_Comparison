@@ -25,12 +25,12 @@ class Evaluation_metrices:
             converted_output = (output[i] > threshold).to(torch.int)
             converted_target = (target[i] > threshold).to(torch.int)
 
-            # print("converted_output", converted_output.shape)
-            # print("converted_target", converted_target.shape)
+            print("converted_output", converted_output.shape)
+            print("converted_target", converted_target.shape)
 
             # torch.set_printoptions(profile="full")
-            # print("converted_output", converted_output[1][0])
-            # print("converted_target", converted_target[1][0])
+            print("converted_output", converted_output[1][0])
+            print("converted_target", converted_target[1][0])
 
             # Assuming converted_target is a PyTorch tensor
             # tensor_data = target[1][0].detach().numpy()  # Convert to NumPy array

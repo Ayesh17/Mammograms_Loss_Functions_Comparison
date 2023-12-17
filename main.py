@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from hausdorff import HausdorffDTLoss, HausdorffERLoss
 
 import torch
 import torch.nn as nn
@@ -23,7 +24,7 @@ import config
 
 
 # paths
-dataset_path = config.DATASET_PATH
+dataset_path = config.INBREAST_DATASET_PATH
 train_path = os.path.join(dataset_path, "train")
 test_path = os.path.join(dataset_path, "test")
 
@@ -178,7 +179,12 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            loss = loss_function.bce_dice_loss(outputs, masks)
+            
+            HD_dt = HausdorffDTLoss()
+            loss = HD_dt.forward(outputs, masks, debug=False)
+
+            # loss = loss_function.bce_dice_loss(outputs, masks)
+            
             train_loss += loss
 
             # calculate metrics
@@ -277,7 +283,10 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 outputs = torch.sigmoid(outputs)
                 # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                loss = loss_function.bce_dice_loss(outputs, masks)
+                loss = HD_dt.forward(outputs, masks)
+
+                # loss = loss_function.bce_dice_loss(outputs, masks)
+                
                 val_loss += loss
 
 

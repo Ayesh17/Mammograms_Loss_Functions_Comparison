@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import skimage
 from matplotlib import pyplot as plt
 
+from hausdorff import HausdorffDTLoss
+
 beta = 0.25
 alpha = 0.25
 gamma = 2
@@ -102,6 +104,12 @@ class Semantic_loss_functions:
         # plt.show()
 
         loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true)
+        return loss
+
+    def hausdorff_bce_dice_loss(self, y_pred, y_true):
+        H = HausdorffDTLoss()
+        # loss = H.forward(pred=y_pred, target=y_true)
+        loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true) + H.forward(pred=y_pred, target=y_true)
         return loss
 
     def confusion(self, y_pred, y_true):

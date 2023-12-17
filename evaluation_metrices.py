@@ -32,10 +32,10 @@ class Evaluation_metrices:
 
             # print("converted_output", converted_output.shape)
             # print("converted_target", converted_target.shape)
-
+            #
             # torch.set_printoptions(profile="full")
-            # print("converted_output", converted_output[1][0])
-            # print("converted_target", converted_target[1][0])
+            # print("converted_output", converted_output[0])
+            # print("converted_target", converted_target[0])
 
 
             tp = torch.sum((converted_output == 1) & (converted_target == 1))
