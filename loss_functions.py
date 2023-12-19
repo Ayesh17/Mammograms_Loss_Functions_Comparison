@@ -106,6 +106,18 @@ class Semantic_loss_functions:
         loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true)
         return loss
 
+    def hausdorff_bce_loss(self, y_pred, y_true):
+        H = HausdorffDTLoss()
+        # loss = H.forward(pred=y_pred, target=y_true)
+        loss = F.binary_cross_entropy(y_pred, y_true) + H.forward(pred=y_pred, target=y_true)
+        return loss
+
+    def hausdorff_dice_loss(self, y_pred, y_true):
+        H = HausdorffDTLoss()
+        # loss = H.forward(pred=y_pred, target=y_true)
+        loss = self.dice_loss(y_pred, y_true) + H.forward(pred=y_pred, target=y_true)
+        return loss
+
     def hausdorff_bce_dice_loss(self, y_pred, y_true):
         H = HausdorffDTLoss()
         # loss = H.forward(pred=y_pred, target=y_true)

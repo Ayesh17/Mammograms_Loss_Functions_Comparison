@@ -25,8 +25,15 @@ import config
 dataset_path = config.CBIS_DATASET_PATH_2
 test_path = os.path.join(dataset_path, "size_test")
 
-test_image_dataset_path = os.path.join(test_path, "images", "large")
-test_mask_dataset_path = os.path.join(test_path, "masks", "large")
+# test_image_dataset_path = os.path.join(test_path, "images", "large")
+# test_mask_dataset_path = os.path.join(test_path, "masks", "large")
+
+# test_image_dataset_path = os.path.join(test_path, "images", "medium")
+# test_mask_dataset_path = os.path.join(test_path, "masks", "medium")
+
+test_image_dataset_path = os.path.join(test_path, "images", "small")
+test_mask_dataset_path = os.path.join(test_path, "masks", "small")
+
 
 # print("..................Testing..............")
 # Load the mammogram images and masks path for the test set
@@ -119,30 +126,30 @@ print("Testing accuracy: {:.2f}%, Testing Precision: {:.4f}, Testing Recall: {:.
 
 # Visualize and save the output as a PNG
 
-# Plot some sample outputs, images, masks, or any relevant data
-sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
-sample_image = images[0].permute(1, 2, 0)  # Assuming a single image from the batch
-sample_image = sample_image[:,:,0]
-sample_mask = masks[0].cpu().numpy().squeeze()  # Assuming a single mask from the batch
-
-fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-
-axes[0].imshow(sample_output, cmap='gray')
-axes[0].set_title('Model Output')
-
-axes[1].imshow(sample_image)
-axes[1].set_title('Input Image')
-
-axes[2].imshow(sample_mask, cmap='gray')
-axes[2].set_title('Ground Truth Mask')
-
-plt.tight_layout()
-
-# Save the plot as a PNG file
-# plt.savefig('output.png')
-
-# Show the plot if needed
-plt.show()
+# # Plot some sample outputs, images, masks, or any relevant data
+# sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch
+# sample_image = images[0].permute(1, 2, 0)  # Assuming a single image from the batch
+# sample_image = sample_image[:,:,0]
+# sample_mask = masks[0].cpu().numpy().squeeze()  # Assuming a single mask from the batch
+#
+# fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+#
+# axes[0].imshow(sample_output, cmap='gray')
+# axes[0].set_title('Model Output')
+#
+# axes[1].imshow(sample_image)
+# axes[1].set_title('Input Image')
+#
+# axes[2].imshow(sample_mask, cmap='gray')
+# axes[2].set_title('Ground Truth Mask')
+#
+# plt.tight_layout()
+#
+# # Save the plot as a PNG file
+# # plt.savefig('output.png')
+#
+# # Show the plot if needed
+# plt.show()
 
 
 # sample_output = outputs.cpu().numpy().squeeze()  # Assuming a single output from the batch

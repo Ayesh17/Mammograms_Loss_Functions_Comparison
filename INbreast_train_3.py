@@ -18,6 +18,7 @@ from evaluation_metrices import Evaluation_metrices
 from AUNet_1 import AUNet_R16
 from unet_1 import build_unet
 from loss_functions import Semantic_loss_functions
+from hausdorff import HausdorffDTLoss, HausdorffERLoss
 import config
 
 
@@ -36,9 +37,9 @@ all_image_npy_paths = sorted(Path(train_image_dataset_path).glob("*.npy"))
 all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
 
-#check for existing models
+# check for existing models
 # Find existing model files in the directory
-models_dir = "models/INbreast"
+models_dir = "models/INbreast/hausdorff"
 
 
 # Define lists to store evaluation metrics across folds
@@ -96,14 +97,15 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
     # Create the model
-    # model = AUNet_R16()
-    model = UNet()
+    model = AUNet_R16()
+    # model = UNet()
     # model = build_unet()
 
     # Define the loss function
     # loss_function = nn.BCELoss()
     # loss_function = nn.CrossEntropyLoss()
     loss_function = Semantic_loss_functions()
+    HD_dt = HausdorffDTLoss()
 
     # Define the optimizer
     optimizer = optim.Adam(model.parameters(), lr = config.Learning_rate)
@@ -115,15 +117,15 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [], "train_iou": [], "val_iou": [], "train_dice": [], "val_dice": [], "train_specificity": [], "val_specificity": [] , "train_recall": [], "val_recall": [], "train_precision": [], "val_precision": []  }
 
     max_valid_dice = 0
-    lr = 0.0001
+    lr = config.Learning_rate
     # Train the model
     for epoch in range(config.EPOCHS):
-        # if epoch == 39:
-        #     lr = 0.00005
-        # elif epoch == 69:
-        #     lr = 0.00001
-        # elif epoch == 99:
-        #     lr = 0.000001
+        if epoch == 39:
+            lr = 0.00005
+        elif epoch == 69:
+            lr = 0.00001
+        elif epoch == 99:
+            lr = 0.000001
         optimizer = optim.Adam(model.parameters(), lr)
         print("Epoch :", epoch+1, lr)
 
@@ -179,7 +181,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            loss = loss_function.bce_dice_loss(outputs, masks)
+            # loss = loss_function.hausdorff_loss(outputs, masks)
+            loss = HD_dt.forward(outputs, masks)
             train_loss += loss
 
             # calculate metrics
@@ -260,7 +263,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 outputs = torch.sigmoid(outputs)
                 # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                loss = loss_function.bce_dice_loss(outputs, masks)
+                # loss = loss_function.hausdorff_loss(outputs, masks)
+                loss = HD_dt.forward(outputs, masks)
                 val_loss += loss
 
 
@@ -309,6 +313,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
             H["train_precision"].append(train_precision)
             H["val_precision"].append(val_precision)
 
+            # Save the model
             # Save the model
             if max_valid_dice < val_dice:
                 print(f'Validation Dice Increased({max_valid_dice:.6f}--->{val_dice:.6f}) \t Saving The Model')

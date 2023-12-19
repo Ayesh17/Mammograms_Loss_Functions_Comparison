@@ -39,7 +39,7 @@ all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
 # check for existing models
 # Find existing model files in the directory
-models_dir = "models/INbreast"
+models_dir = "models/INbreast/hausdorff2"
 
 
 # Define lists to store evaluation metrics across folds
@@ -97,8 +97,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
     # Create the model
-    # model = AUNet_R16()
-    model = UNet()
+    model = AUNet_R16()
+    # model = UNet()
     # model = build_unet()
 
     # Define the loss function

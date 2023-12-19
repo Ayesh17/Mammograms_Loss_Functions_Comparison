@@ -97,8 +97,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
 
     # Create the model
-    model = AUNet_R16()
-    # model = UNet()
+    # model = AUNet_R16()
+    model = UNet()
     # model = build_unet()
 
     # Define the loss function
@@ -181,7 +181,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            loss = loss_function.dice_loss(outputs, masks)
+            loss = loss_function.hausdorff_dice_loss(outputs, masks)
             # loss = HD_dt.forward(outputs, masks)
             train_loss += loss
 
@@ -263,7 +263,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 outputs = torch.sigmoid(outputs)
                 # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                loss = loss_function.dice_loss(outputs, masks)
+                loss = loss_function.hausdorff_dice_loss(outputs, masks)
                 # loss = HD_dt.forward(outputs, masks)
                 val_loss += loss
 
