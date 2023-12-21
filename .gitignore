@@ -1,6 +1,7 @@
 dataset/*
 models/*
 outputs/*
+results/*
 models_old/*
 outputs_old/*
 model.pt
