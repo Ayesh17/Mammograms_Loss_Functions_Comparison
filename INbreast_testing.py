@@ -44,7 +44,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 model = UNet()
 # model = AUNet_R16()
 # Load the saved model state
-model_path = "models/INbreast/model_87.pt"
+model_path = "models/INbreast/model_115.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices

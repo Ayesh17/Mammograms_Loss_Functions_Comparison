@@ -18,7 +18,6 @@ from evaluation_metrices import Evaluation_metrices
 from AUNet_1 import AUNet_R16
 from unet_1 import build_unet
 from loss_functions import Semantic_loss_functions
-from hausdorff import HausdorffDTLoss, HausdorffERLoss
 import config
 
 
@@ -74,13 +73,9 @@ model_filename = os.path.join(models_dir, f'model_{model_count}.pt')
 print(model_filename)
 
 
-
+# Split dataset into train and validation
 train_images, val_images, train_masks, val_masks = train_test_split(all_image_npy_paths, all_mask_npy_paths, test_size=0.2, random_state=42)
-# # Split dataset into train and validation for this fold
-# train_images = [all_image_npy_paths[i] for i in train_idx]
-# val_images = [all_image_npy_paths[i] for i in val_idx]
-# train_masks = [all_mask_npy_paths[i] for i in train_idx]
-# val_masks = [all_mask_npy_paths[i] for i in val_idx]
+
 
 # Create the training and validation datasets for this fold
 train_dataset = SegmentationDataset(train_images, train_masks)
@@ -122,7 +117,7 @@ H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [],
 min_valid_loss = np.inf
 lr = config.Learning_rate
 # Train the model
-for epoch in range(2):
+for epoch in range(config.EPOCHS):
     if epoch == 39:
         lr = 0.00005
     elif epoch == 69:
@@ -185,10 +180,7 @@ for epoch in range(2):
 
         # print("outputs",torch.min(outputs), torch.max(outputs))
         # print("masks",torch.min(masks), torch.max(masks))
-        # loss = loss_function.bce_dice_loss(outputs, masks)
-
-        HD_dt = HausdorffDTLoss()
-        loss = HD_dt.forward(outputs, masks, debug=False)
+        loss = loss_function.hausdorff_dynamic_loss2(outputs, masks, epoch)
         train_loss += loss
 
         # calculate metrics
@@ -269,9 +261,7 @@ for epoch in range(2):
             outputs = torch.sigmoid(outputs)
             # loss = loss_function(outputs, masks)
             # loss = loss_function.dice_loss(outputs, masks)
-            # loss = loss_function.bce_dice_loss(outputs, masks)
-
-            loss = HD_dt.forward(outputs, masks, debug=False)
+            loss = loss_function.hausdorff_dynamic_loss2(outputs, masks, epoch)
             val_loss += loss
 
             # calculate metrics

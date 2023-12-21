@@ -1,0 +1,6 @@
+Fold,Training Accuracy,Validation Accuracy,Training Loss,Validation Loss,Training Sensitivity,Validation Sensitivity,Training IOU,Validation IOU,Training Dice,Validation Dice,Training Precision,Validation Precision,Training Specificity,Validation Specificity
+0,91.5846939086914,tensor(91.5847),tensor(0.3976),tensor(0.3976),tensor(0.5732),tensor(0.5732),tensor(0.1568),tensor(0.1568),tensor(0.2312),tensor(0.2312),tensor(0.1923),tensor(0.1923),tensor(0.9192),tensor(0.9192)
+1,93.60096740722656,tensor(93.6010),tensor(0.4043),tensor(0.4043),tensor(0.4112),tensor(0.4112),tensor(0.1488),tensor(0.1488),tensor(0.2089),tensor(0.2089),tensor(0.1682),tensor(0.1682),tensor(0.9428),tensor(0.9428)
+2,93.96964263916016,tensor(93.9696),tensor(0.3856),tensor(0.3856),tensor(0.5275),tensor(0.5275),tensor(0.3134),tensor(0.3134),tensor(0.3971),tensor(0.3971),tensor(0.4368),tensor(0.4368),tensor(0.9574),tensor(0.9574)
+3,94.00440216064453,tensor(94.0044),tensor(0.3931),tensor(0.3931),tensor(0.2157),tensor(0.2157),tensor(0.0609),tensor(0.0609),tensor(0.0983),tensor(0.0983),tensor(0.0979),tensor(0.0979),tensor(0.9585),tensor(0.9585)
+4,91.35521697998047,tensor(91.3552),tensor(0.4081),tensor(0.4081),tensor(0.5688),tensor(0.5688),tensor(0.1735),tensor(0.1735),tensor(0.2461),tensor(0.2461),tensor(0.1910),tensor(0.1910),tensor(0.9186),tensor(0.9186)

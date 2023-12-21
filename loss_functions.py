@@ -124,6 +124,51 @@ class Semantic_loss_functions:
         loss = F.binary_cross_entropy(y_pred, y_true) + self.dice_loss(y_pred, y_true) + H.forward(pred=y_pred, target=y_true)
         return loss
 
+    def hausdorff_dynamic_loss(self, y_pred, y_true, epoch ):
+        H = HausdorffDTLoss()
+        # loss = H.forward(pred=y_pred, target=y_true)
+        bce_loss =  F.binary_cross_entropy(y_pred, y_true)
+        hausdorff_loss = H.forward(pred=y_pred, target=y_true)
+        # print("pre_loss",bce_loss, " ", hausdorff_loss)
+
+        alpha = epoch /1000
+
+        loss = bce_loss + alpha * hausdorff_loss
+        return loss
+
+    def hausdorff_dynamic_loss2(self, y_pred, y_true, epoch ):
+        H = HausdorffDTLoss()
+        # loss = H.forward(pred=y_pred, target=y_true)
+        bce_loss =  F.binary_cross_entropy(y_pred, y_true)
+        hausdorff_loss = H.forward(pred=y_pred, target=y_true)
+        # print("pre_loss",bce_loss, " ", hausdorff_loss)
+
+        alpha = hausdorff_loss / bce_loss
+
+        # print("alpha", alpha)
+
+        if alpha > 10000:
+            hausdorff_loss = hausdorff_loss/ 10000
+        elif alpha > 5000:
+            hausdorff_loss = hausdorff_loss/ 5000
+        elif alpha > 1000:
+            hausdorff_loss = hausdorff_loss/ 1000
+        elif alpha > 500:
+            hausdorff_loss = hausdorff_loss/ 500
+        elif alpha > 100:
+            hausdorff_loss = hausdorff_loss/ 100
+        elif alpha > 50:
+            hausdorff_loss = hausdorff_loss/ 50
+        elif alpha > 10:
+            hausdorff_loss = hausdorff_loss/ 10
+        elif alpha > 5:
+            hausdorff_loss = hausdorff_loss/ 5
+
+        # print("post_loss", bce_loss, " ", hausdorff_loss)
+
+        loss = bce_loss + hausdorff_loss
+        return loss
+
     def confusion(self, y_pred, y_true):
         smooth = 1
         y_pred_pos = y_pred.clamp(0, 1)

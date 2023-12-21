@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import KFold
 import tqdm
+import csv
 
 from dataset import SegmentationDataset
 # from unet import UNet
@@ -37,19 +38,48 @@ all_image_npy_paths = sorted(Path(train_image_dataset_path).glob("*.npy"))
 all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
 
-# check for existing models
-# Find existing model files in the directory
-models_dir = "models/INbreast"
 
 
 # Define lists to store evaluation metrics across folds
-all_train_loss, all_val_loss = [], []
-all_train_accuracy, all_val_accuracy = [], []
-all_train_iou, all_val_iou = [], []
-all_train_dice, all_val_dice = [], []
-all_train_specificity, all_val_specificity = [], []
-all_train_recall, all_val_recall = [], []
-all_train_precision, all_val_precision = [], []
+all_train_loss = [0] * 5
+all_val_loss = [0] * 5
+all_train_accuracy = [0] * 5
+all_val_accuracy = [0] * 5
+all_train_iou = [0] * 5
+all_val_iou = [0] * 5
+all_train_dice = [0] * 5
+all_val_dice = [0] * 5
+all_train_specificity = [0] * 5
+all_val_specificity = [0] * 5
+all_train_recall = [0] * 5
+all_val_recall = [0] * 5
+all_train_precision = [0] * 5
+all_val_precision = [0] * 5
+
+# Output paths
+# Define the base path
+BASE_PATH = "results/INbreast"
+
+# Create the output directory if it doesn't exist
+if not os.path.exists(BASE_PATH):
+    os.makedirs(BASE_PATH)
+
+# Find existing output_digit directories and get the next available digit
+existing_output_dirs = [name for name in os.listdir(BASE_PATH) if name.startswith("result_")]
+if existing_output_dirs:
+    existing_digits = [int(name.split("_")[1]) for name in existing_output_dirs]
+    next_digit = max(existing_digits) + 1
+else:
+    next_digit = 1
+
+# Create the new output directory with the next available digit
+OUTPUT_PATH = os.path.join(BASE_PATH, f"result_{next_digit:02d}")
+os.makedirs(OUTPUT_PATH)
+
+# check for existing models
+# Find existing model files in the directory
+models_dir = os.path.join( OUTPUT_PATH, "models")
+os.makedirs(models_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
 
 # Define the number of folds
@@ -119,7 +149,8 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
     max_valid_dice = 0
     lr = config.Learning_rate
     # Train the model
-    for epoch in range(config.EPOCHS):
+    # for epoch in range(config.EPOCHS):
+    for epoch in range(5):
         if epoch == 39:
             lr = 0.00005
         elif epoch == 69:
@@ -181,7 +212,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
             # print("outputs",torch.min(outputs), torch.max(outputs))
             # print("masks",torch.min(masks), torch.max(masks))
-            loss = loss_function.hausdorff_bce_loss(outputs, masks)
+            loss = loss_function.bce_dice_loss(outputs, masks)
             # loss = HD_dt.forward(outputs, masks)
             train_loss += loss
 
@@ -263,7 +294,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
                 outputs = torch.sigmoid(outputs)
                 # loss = loss_function(outputs, masks)
                 # loss = loss_function.dice_loss(outputs, masks)
-                loss = loss_function.hausdorff_bce_loss(outputs, masks)
+                loss = loss_function.bce_dice_loss(outputs, masks)
                 # loss = HD_dt.forward(outputs, masks)
                 val_loss += loss
 
@@ -322,33 +353,70 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(all_image_npy_paths)):
 
                 torch.save(model.state_dict(), model_filename)
 
-    # Record evaluation metrics at the end of each fold
-    all_train_loss.append(H["train_loss"])
-    all_val_loss.append(H["val_loss"])
+                # Record evaluation metrics at the end of each fold
+                all_train_loss[fold] = train_loss
+                all_val_loss[fold] = val_loss
 
-    all_train_accuracy.append(H["train_accuracy"])
-    all_val_accuracy.append(H["val_accuracy"])
+                all_train_accuracy[fold] = train_accuracy
+                all_val_accuracy[fold]= val_accuracy
 
-    all_train_iou.append(H["train_iou"])
-    all_val_iou.append(H["val_iou"])
+                all_train_iou[fold] = train_iou
+                all_val_iou[fold] = val_iou
 
-    all_train_dice.append(H["train_dice"])
-    all_val_dice.append(H["val_dice"])
+                all_train_dice[fold] = train_dice
+                all_val_dice[fold] = val_dice
 
-    all_train_specificity.append(H["train_specificity"])
-    all_val_specificity.append(H["val_specificity"])
+                all_train_specificity[fold] = train_specificity
+                all_val_specificity[fold] = val_specificity
 
-    all_train_recall.append(H["train_recall"])
-    all_val_recall.append(H["val_recall"])
+                all_train_recall[fold] = train_recall
+                all_val_recall[fold] = val_recall
 
-    all_train_precision.append(H["train_precision"])
-    all_val_precision.append(H["val_precision"])
+                all_train_precision[fold] = train_precision
+                all_val_precision[fold] = val_precision
 
 
 
-# Calculate the mean of evaluation metrics across all folds
-mean_train_loss = np.mean(all_train_loss)
-mean_val_loss = np.mean(all_val_loss)
+    # # Record evaluation metrics at the end of each fold
+    # all_train_loss.append(H["train_loss"])
+    # all_val_loss.append(H["val_loss"])
+    #
+    # all_train_accuracy.append(H["train_accuracy"])
+    # all_val_accuracy.append(H["val_accuracy"])
+    #
+    # all_train_iou.append(H["train_iou"])
+    # all_val_iou.append(H["val_iou"])
+    #
+    # all_train_dice.append(H["train_dice"])
+    # all_val_dice.append(H["val_dice"])
+    #
+    # all_train_specificity.append(H["train_specificity"])
+    # all_val_specificity.append(H["val_specificity"])
+    #
+    # all_train_recall.append(H["train_recall"])
+    # all_val_recall.append(H["val_recall"])
+    #
+    # all_train_precision.append(H["train_precision"])
+    # all_val_precision.append(H["val_precision"])
+
+print("all_train_accuracy", all_train_accuracy)
+print("all_val_accuracy", all_val_accuracy)
+
+# Display evaluation metrics across all folds
+for i in range(2):
+    print()
+    print("Best results of fold: ", i)
+    print(
+        "Training accuracy: {:.2f}%, Validation accuracy: {:.2f}%, Training Loss: {:.4f}, Validation Loss: {:.4f}, Training Sensitivity: {:.4f}, Validation Sensitivity: {:.4f}".format(
+            all_train_accuracy[i],  all_val_accuracy[i], all_train_loss[i],  all_val_loss[i], all_train_recall[i],  all_val_recall[i]))
+
+    print(
+        "Training IOU: {:.4f}, Validation IOU: {:.4f}, Training Dice: {:.4f}, Validation Dice: {:.4f}, Training Precision: {:.4f}, Validation Precision: {:.4f}, Training Specificity: {:.4f}, Validation Specificity: {:.4f}".format(
+            all_train_iou[i],  all_val_iou[i], all_train_dice[i],  all_val_dice[i], all_train_precision[i], all_val_precision[i], all_train_specificity[i], all_val_specificity[i]))
+
+# # Calculate the mean of evaluation metrics across all folds
+# mean_train_loss = np.mean(all_train_loss.detach().numpy())
+# mean_val_loss = np.mean(all_val_loss.detach().numpy())
 
 mean_train_accuracy = np.mean(all_train_accuracy)
 mean_val_accuracy = np.mean(all_val_accuracy)
@@ -368,42 +436,64 @@ mean_val_recall = np.mean(all_val_recall)
 mean_train_precision = np.mean(all_train_precision)
 mean_val_precision= np.mean(all_val_precision)
 
+
 # Display mean evaluation metrics across all folds
 print()
 print("Average results after 5 folds")
-print("Training accuracy: {:.2f}%, Validation accuracy: {:.2f}%, Traning Loss: {:.4f}, Validation Loss: {:.4f}, Traning Sensitivity: {:.4f}, Validation Sensitivity: {:.4f}, ".format(mean_train_accuracy, mean_val_accuracy, mean_train_loss, mean_val_loss, mean_train_recall, mean_val_recall))
+print("Training accuracy: {:.2f}%, Validation accuracy: {:.2f}%, Traning Sensitivity: {:.4f}, Validation Sensitivity: {:.4f}, ".format(mean_train_accuracy, mean_val_accuracy, mean_train_recall, mean_val_recall))
 print("Training iou: {:.4f}, Validation iou: {:.4f}, Traning dice: {:.4f}, Validation dice: {:.4f}, Traning precision: {:.4f}, Validation precision: {:.4f}, Traning specificity: {:.4f}, Validation specificity: {:.4f}".format(mean_train_iou, mean_val_iou, mean_train_dice, mean_val_dice, mean_train_precision, mean_val_precision, mean_train_specificity, mean_val_specificity))
 
 
+import csv
 
-# Output paths
-# Define the base path
-BASE_PATH = "outputs/INbreast"
+# Create a list of headers for your CSV file
+headers = [
+    "Fold", "Training Accuracy", "Validation Accuracy", "Training Loss", "Validation Loss",
+    "Training Sensitivity", "Validation Sensitivity", "Training IOU", "Validation IOU",
+    "Training Dice", "Validation Dice", "Training Precision", "Validation Precision",
+    "Training Specificity", "Validation Specificity"
+]
 
-# Create the output directory if it doesn't exist
-if not os.path.exists(BASE_PATH):
-    os.makedirs(BASE_PATH)
+# Data to be written to the CSV file
+data = []
+for i in range(5):
+    fold_data = [
+        i,
+        all_train_accuracy[i].item(), all_val_accuracy[i].item(),
+        all_train_loss[i].item(), all_val_loss[i].item(),
+        all_train_recall[i].item(), all_val_recall[i].item(),
+        all_train_iou[i].item(), all_val_iou[i].item(),
+        all_train_dice[i].item(), all_val_dice[i].item(),
+        all_train_precision[i].item(), all_val_precision[i].item(),
+        all_train_specificity[i].item(), all_val_specificity[i].item()
+    ]
+    data.append(fold_data)
 
-# Find existing output_digit directories and get the next available digit
-existing_output_dirs = [name for name in os.listdir(BASE_PATH) if name.startswith("output_")]
-if existing_output_dirs:
-    existing_digits = [int(name.split("_")[1]) for name in existing_output_dirs]
-    next_digit = max(existing_digits) + 1
-else:
-    next_digit = 1
+# Write data to a CSV file
+CSV_PATH = os.path.join(OUTPUT_PATH, "results")
+os.makedirs(CSV_PATH, exist_ok=True)  # Create the directory if it doesn't exist
+csv_file_path = os.path.join(CSV_PATH, 'evaluation_metrics.csv')
+
+with open(csv_file_path, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(headers)  # Write headers
+    writer.writerows(data)  # Write evaluation metrics data
+
+
 
 # Create the new output directory with the next available digit
-OUTPUT_PATH = os.path.join(BASE_PATH, f"output_{next_digit:02d}")
-os.makedirs(OUTPUT_PATH)
+PLOTS_PATH = os.path.join(OUTPUT_PATH, "plots")
+os.makedirs(PLOTS_PATH)
 
-ACCURACY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "acc_plot.png"])
-LOSSES_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "losses_plot.png"])
-IOU_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "iou_plot.png"])
-DICE_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "dice_plot.png"])
-PIXEL_ACCURACY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "pixel_accuracyplot.png"])
-PRECISION_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "precision_plot.png"])
-RECALL_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "recall_plot.png"])
-SPECIFICTY_PLOT_PATH = os.path.sep.join([OUTPUT_PATH, "specificty.png"])
+
+ACCURACY_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "acc_plot.png"])
+LOSSES_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "losses_plot.png"])
+IOU_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "iou_plot.png"])
+DICE_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "dice_plot.png"])
+PIXEL_ACCURACY_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "pixel_accuracyplot.png"])
+PRECISION_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "precision_plot.png"])
+RECALL_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "recall_plot.png"])
+SPECIFICTY_PLOT_PATH = os.path.sep.join([PLOTS_PATH, "specificty.png"])
 
 
 

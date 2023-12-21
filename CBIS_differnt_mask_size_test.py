@@ -23,16 +23,18 @@ import config
 
 # paths
 dataset_path = config.CBIS_DATASET_PATH_2
-test_path = os.path.join(dataset_path, "size_test")
+# test_path = os.path.join(dataset_path, "size_test", "train")
+test_path = os.path.join(dataset_path, "size_test", "val")
+# test_path = os.path.join(dataset_path, "size_test", "test")
 
 # test_image_dataset_path = os.path.join(test_path, "images", "large")
 # test_mask_dataset_path = os.path.join(test_path, "masks", "large")
 
-# test_image_dataset_path = os.path.join(test_path, "images", "medium")
-# test_mask_dataset_path = os.path.join(test_path, "masks", "medium")
+test_image_dataset_path = os.path.join(test_path, "images", "medium")
+test_mask_dataset_path = os.path.join(test_path, "masks", "medium")
 
-test_image_dataset_path = os.path.join(test_path, "images", "small")
-test_mask_dataset_path = os.path.join(test_path, "masks", "small")
+# test_image_dataset_path = os.path.join(test_path, "images", "small")
+# test_mask_dataset_path = os.path.join(test_path, "masks", "small")
 
 
 # print("..................Testing..............")
