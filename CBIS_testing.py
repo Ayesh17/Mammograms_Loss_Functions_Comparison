@@ -43,7 +43,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 model = UNet()
 # model = AUNet_R16()
 # Load the saved model state
-model_path = "models/CBIS-DDSM/model_2.pt"
+model_path = "models/CBIS-DDSM/model_12.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices

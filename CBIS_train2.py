@@ -40,7 +40,7 @@ all_mask_npy_paths = sorted(Path(train_mask_dataset_path).glob("*.npy"))
 
 #check for existing models
 # Find existing model files in the directory
-models_dir = "models/CBIS-DDSM"
+models_dir = "models/CBIS-DDSM2"
 
 
 # Define lists to store evaluation metrics across folds
@@ -114,7 +114,7 @@ metrics = Evaluation_metrices
 # initialize a dictionary to store training history
 H = {"train_accuracy": [], "val_accuracy": [], "train_loss": [], "val_loss": [], "train_iou": [], "val_iou": [], "train_dice": [], "val_dice": [], "train_specificity": [], "val_specificity": [] , "train_recall": [], "val_recall": [], "train_precision": [], "val_precision": []  }
 
-min_valid_loss = np.inf
+max_valid_dice = 0
 lr = config.Learning_rate
 # Train the model
 for epoch in range(config.EPOCHS):
@@ -315,11 +315,11 @@ for epoch in range(config.EPOCHS):
         H["val_precision"].append(val_precision)
 
         # Save the model
-        if min_valid_loss > val_loss:
-            print(f'Validation Loss Decreased({min_valid_loss:.6f}--->{val_loss:.6f}) \t Saving The Model')
-            min_valid_loss = val_loss
-            # Saving State Dict
+        if max_valid_dice < val_dice:
+            print(f'Validation Dice Increased({max_valid_dice:.6f}--->{val_dice:.6f}) \t Saving The Model')
+            max_valid_dice = val_dice
 
+            # Saving State Dict
             torch.save(model.state_dict(), model_filename)
 
 # Record evaluation metrics at the end of each fold

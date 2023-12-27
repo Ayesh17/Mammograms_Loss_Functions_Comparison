@@ -23,18 +23,18 @@ import config
 
 # paths
 dataset_path = config.CBIS_DATASET_PATH_2
-# test_path = os.path.join(dataset_path, "size_test", "train")
-test_path = os.path.join(dataset_path, "size_test", "val")
+test_path = os.path.join(dataset_path, "size_test", "train")
+# test_path = os.path.join(dataset_path, "size_test", "val")
 # test_path = os.path.join(dataset_path, "size_test", "test")
 
 # test_image_dataset_path = os.path.join(test_path, "images", "large")
 # test_mask_dataset_path = os.path.join(test_path, "masks", "large")
 
-test_image_dataset_path = os.path.join(test_path, "images", "medium")
-test_mask_dataset_path = os.path.join(test_path, "masks", "medium")
+# test_image_dataset_path = os.path.join(test_path, "images", "medium")
+# test_mask_dataset_path = os.path.join(test_path, "masks", "medium")
 
-# test_image_dataset_path = os.path.join(test_path, "images", "small")
-# test_mask_dataset_path = os.path.join(test_path, "masks", "small")
+test_image_dataset_path = os.path.join(test_path, "images", "small")
+test_mask_dataset_path = os.path.join(test_path, "masks", "small")
 
 
 # print("..................Testing..............")
@@ -52,7 +52,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.BATCH_
 model = UNet()
 # model = AUNet_R16()
 # Load the saved model state
-model_path = "models/CBIS-DDSM/model_1.pt"
+model_path = "models/CBIS-DDSM2/model_3.pt"
 model.load_state_dict(torch.load(model_path))
 
 metrics = Evaluation_metrices
